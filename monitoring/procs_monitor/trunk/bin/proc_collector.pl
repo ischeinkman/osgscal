@@ -9,6 +9,7 @@ use File::CheckTree;
 use POSIX qw(strftime);
 use Time::Local;
 use File::Copy;
+use File::Basename;
 
 ###############
 #
@@ -217,7 +218,7 @@ my $ConfigurationFile = $ARGV[0];
 my %ConfigurationData;
 $ConfigurationData{'procs_conf'}{'filter'}='.+';
 $ConfigurationData{'out_file'}{'filter'}='.+';
-$ConfigurationData{'syslogFacility'}{'filter'}='local[0-7]';
+#$ConfigurationData{'syslogFacility'}{'filter'}='local[0-7]';
 $ConfigurationData{'ExecutableFile_ps'}{'filter'}='.+';
 $ConfigurationData{'ExecutableFile_lsof'}{'filter'}='.+';
 $ConfigurationData{'ExecutableFile_top'}{'filter'}='.+';
@@ -252,6 +253,33 @@ while (<$Conf>)
 }
 
 close $Conf;
+
+# if not defined in config file set some defaults
+unless (defined ($ConfigurationData{'ExecutableFile_ps'}{'value'}))
+{
+  $ConfigurationData{'ExecutableFile_ps'}{'value'} = '/bin/ps';
+}
+
+unless (defined ($ConfigurationData{'ExecutableFile_lsof'}{'value'}))
+{
+  $ConfigurationData{'ExecutableFile_lsof'}{'value'} = '/usr/sbin/lsof';
+}
+
+unless (defined ($ConfigurationData{'ExecutableFile_top'}{'value'}))
+{
+  $ConfigurationData{'ExecutableFile_top'}{'value'} = '/usr/bin/top';
+}
+
+my $dirname = dirname $0;
+unless (defined ($ConfigurationData{'procs_conf'}{'value'}))
+{
+  $ConfigurationData{'procs_conf'}{'value'} = "$dirname/../etc/procs_to_watch.conf";
+}
+
+unless (defined ($ConfigurationData{'out_file'}{'value'}))
+{
+  $ConfigurationData{'out_file'}{'value'} = "$dirname/../etc/osgmonitoring.xml";
+}
 
 #Check All Our Variables Were Read
 my @ConfigurationDataVariables = keys(%ConfigurationData);
