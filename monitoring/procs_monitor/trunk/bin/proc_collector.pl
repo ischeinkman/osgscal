@@ -105,7 +105,11 @@ sub getTopInfo
 
   # remove output of first top interval
   shift @lines;
-  foreach my $line (@lines) {
+
+  my $length = $#lines + 1;
+
+  for (my $i = 0; $i < $length; $i++)
+  {
     last if $lines[0] =~ /^top/;
     shift @lines;
   }  
