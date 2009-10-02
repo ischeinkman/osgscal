@@ -6,8 +6,8 @@ import os
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
-from osgmonplugin import Plugin
-from osgmonplugin import XMLFileError
+from plugin import Plugin
+from plugin import XMLFileError
 
 # this script requires path of xml file to be parsed as input argument
 if len(sys.argv) <= 2:

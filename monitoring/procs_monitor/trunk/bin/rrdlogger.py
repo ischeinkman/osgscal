@@ -7,7 +7,7 @@ import rrdtool
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
-from osgmonplugin import Plugin
+from plugin import Plugin
 from rrdSupport import rrdSupport
 
 if len(sys.argv) <= 2:
