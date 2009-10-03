@@ -6,11 +6,56 @@ import elementtree.ElementTree as ET
 import sys
 import time
 import os
+import getopt
 
 class XMLFileError(Exception):
   pass
 
 class Plugin(object):
+  def __init__(self):
+    self.options = 'ht:'
+    self.path = None
+    self.threshold = None
+    self.helpFlag = False
+  
+    # values to be parsed from xml
+    self.updated = None
+    self.error = None
+    self.cpu = None
+    self.numProcs = None
+    self.processes = None
+
+  def getArgs(self, argv):
+    optlist, args = getopt.getopt(argv, self.options)
+    for opt in optlist:
+      if opt[0] == '-h':
+        self.helpFlag = True
+      elif opt[0] == '-t':
+        try:
+          self.threshold = float(opt[1])
+        except ValueError:
+          raise ValueError, "Invalid argument for %s:%s" % (opt[0], opt[1])
+
+    if len(args) > 0:
+      self.path = args[0]
+
+  def withinThresh(self):
+    return time.time() - os.path.getmtime(self.path) <= float(self.threshold)
+
+  # ET.parse may raise Exception
+  def parseXML(self):
+    doc = ET.parse(self.path)
+    
+    self.updated = getUpdated(doc)
+    self.error = getError(doc)
+    self.cpu = getCpu(doc)
+    self.numProcs = int(doc.findtext('./processes/procs_tot'))
+    self.processes = getProcs(doc)
+    
+  def printHelp(self):
+     pass
+
+'''class Plugin(object):
   # ET.parse may raise Exception
   def __init__(self, path):
     
@@ -26,7 +71,7 @@ class Plugin(object):
   @staticmethod
   def withinThresh(path, threshold):
     return time.time() - os.path.getmtime(path) <= float(threshold)
-
+'''
 ####
 #
 # getElementDict:  
@@ -113,9 +158,10 @@ def getProcs(root):
   return procs
 
 if __name__ == '__main__':
-  plugin = Plugin(sys.argv[1])
-  
-  print plugin.processes
+  plugin = Plugin()
+  plugin.getArgs(sys.argv[1:])
+  plugin.parseXML()
+  print plugin.updated
 
     
 

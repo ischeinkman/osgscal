@@ -3,6 +3,7 @@ import sys
 import os
 import time
 import rrdtool
+import getopt
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
@@ -10,27 +11,50 @@ sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 from plugin import Plugin
 from rrdSupport import rrdSupport
 
-if len(sys.argv) <= 2:
-  sys.stderr.write("Usage: %s XMLPATH RRDPATH [update threshold in seconds]\n" % sys.argv[0])
+class RRDLogger(Plugin):
+  def __init__(self):
+    super(RRDLogger, self).__init__()
+    self.rrdpath = None
+
+  def getArgs(self, argv):
+    super(RRDLogger, self).getArgs(argv)
+    optlist, args = getopt.getopt(argv, self.options)
+    
+    if len(args) > 1:
+      self.rrdpath = args[1]
+
+  def printHelp(self):
+    print '''\
+Usage: %s [options] XMLPATH RRDPATH
+  options:
+    -h        show this help page
+    -t n      threshold n seconds long.  xml file older than threshold
+              will not be logged.  disabled by default (always logs)''' % sys.argv[0]  
+
+logger = RRDLogger()
+logger.getArgs(sys.argv[1:])
+
+if logger.path is None or logger.rrdpath is None:
+  logger.printHelp()
   sys.exit(1)
 
-xmlpath = sys.argv[1]
-rrdpath = sys.argv[2]
-if len(sys.argv) > 3:
-  threshold = sys.argv[3]
- 
-  if not Plugin.withinThresh(xmlpath, threshold):
+if logger.helpFlag:
+  logger.printHelp()
+  sys.exit(0)
+
+if logger.threshold is not None:
+  if not logger.withinThresh():
     sys.exit(0)
 
-plugin = Plugin(xmlpath)
+logger.parseXML()
 
 # check if xml reported collector error and if so do nothing
-if plugin.error['flag']:
+if logger.error['flag']:
   sys.exit(0)
 
 rrd_obj = rrdSupport()
 
-if not os.path.exists(rrdpath):
+if not os.path.exists(logger.rrdpath):
   step = 300
   heartbeat = 1800
   rows = 740
@@ -48,15 +72,15 @@ if not os.path.exists(rrdpath):
     ('load15','GAUGE',60,'0','U'),
     ('procs','GAUGE',60,'0','U')]
 
-  rrd_obj.create_rrd_multi(rrdpath, step, rralist, dslist)
+  rrd_obj.create_rrd_multi(logger.rrdpath, step, rralist, dslist)
 
-vals = {'user': plugin.cpu['user'],
-  'sys': plugin.cpu['sys'],
-  'idle': plugin.cpu['idle'],
-  'wait': plugin.cpu['wait'],
-  'load1': plugin.cpu['loadavg']['1'],
-  'load5': plugin.cpu['loadavg']['5'],
-  'load15': plugin.cpu['loadavg']['15'],
-  'procs': plugin.numProcs}
-rrd_obj.update_rrd_multi(rrdpath, long(time.time()), vals)
+vals = {'user': logger.cpu['user'],
+  'sys': logger.cpu['sys'],
+  'idle': logger.cpu['idle'],
+  'wait': logger.cpu['wait'],
+  'load1': logger.cpu['loadavg']['1'],
+  'load5': logger.cpu['loadavg']['5'],
+  'load15': logger.cpu['loadavg']['15'],
+  'procs': logger.numProcs}
+rrd_obj.update_rrd_multi(logger.rrdpath, long(time.time()), vals)
 

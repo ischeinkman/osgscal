@@ -2,6 +2,7 @@
 import sys
 import time
 import os
+import getopt
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
@@ -9,32 +10,54 @@ sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 from plugin import Plugin
 from plugin import XMLFileError
 
-# this script requires path of xml file to be parsed as input argument
-if len(sys.argv) <= 2:
-  sys.stderr.write("Usage: %s XMLPATH OUTDIR [update threshold in seconds]\n" % sys.argv[0])
+class TxtLogger(Plugin):
+  def __init__(self):
+    super(TxtLogger, self).__init__()
+    self.outdir = None
+  
+  def getArgs(self, argv):
+    super(TxtLogger, self).getArgs(argv)
+    optlist, args = getopt.getopt(argv, self.options)
+    
+    if len(args) > 1:
+      self.outdir = args[1]
+
+  def printHelp(self):
+    print '''\
+Usage: %s [options] XMLPATH OUTDIR
+  options:
+    -h        show this help page
+    -t n      threshold n seconds long.  xml file older than threshold
+              will not be logged.  disabled by default (always logs)''' % sys.argv[0]
+
+logger = TxtLogger()
+logger.getArgs(sys.argv[1:])
+
+if logger.path is None or logger.outdir is None:
+  logger.printHelp()
   sys.exit(1)
 
-xmlpath = sys.argv[1]
-outdir = sys.argv[2]
-if len(sys.argv) > 3:
-  threshold = sys.argv[3]
- 
-  if not Plugin.withinThresh(xmlpath, threshold):
-    sys.exit(0)
-
-plugin = Plugin(xmlpath)
-
-# check if xml reported collector error and if so do nothing
-if plugin.error['flag']:
+if logger.helpFlag:
+  logger.printHelp()
   sys.exit(0)
 
-if not os.path.isdir(outdir):
-  os.mkdir(outdir)
+if logger.threshold is not None:
+  if not logger.withinThresh():
+    sys.exit(0)
 
-for proc in plugin.processes:
+logger.parseXML()
+
+# check if xml reported collector error and if so do nothing
+if logger.error['flag']:
+  sys.exit(0)
+
+if not os.path.isdir(logger.outdir):
+  os.mkdir(logger.outdir)
+
+for proc in logger.processes:
   name = proc['name']
   if (name != None):
-    filename = "%s/%s.log" % (outdir, name)
+    filename = "%s/%s.log" % (logger.outdir, name)
 	
     if not os.path.exists(filename):
       fout = open(filename, 'w')
@@ -42,6 +65,5 @@ for proc in plugin.processes:
     else:
       fout = open(filename, 'a')
 
-    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i\n" % (plugin.updated['UTC']['unixtime'], proc['pcpu'], 
+    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i\n" % (logger.updated['UTC']['unixtime'], proc['pcpu'], 
       proc['pmem'], proc['rss'], proc['vsize'], proc['procs'], proc['files']))
-		
