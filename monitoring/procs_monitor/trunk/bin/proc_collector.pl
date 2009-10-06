@@ -102,7 +102,9 @@ sub getTopInfo
   my $top = shift @_;
   my @lines = `$top -b -n 2`; # -n 2 because cpu info from first step is inaccurate
   die "Problem getting top output\n" if $#lines < 0;
-
+#foreach my $line (@lines) {
+#  print $line;
+#}
   # remove output of first top interval
   shift @lines;
 
@@ -117,7 +119,8 @@ sub getTopInfo
   my %values;
 
   $_ = $lines[0];
-  s/,//g;
+  s/:/ /g;
+  s/,/ /g;
   my @loads = split /\s+/;
   $values{'loadavg'}{15} = pop @loads;
   $values{'loadavg'}{5} = pop @loads;
@@ -127,9 +130,9 @@ sub getTopInfo
   $values{'procs_tot'} = $1;
 
   $_ = $lines[2];
-  s/Cpu\(s\):\s+//;
+  s/Cpu\(s\):\s*//;
   s/%..//g;
-  my @cpuvals = split(/,\s+/);
+  my @cpuvals = split(/,\s*/);
 
   $values{'user'} = $cpuvals[0];
   $values{'sys'} = $cpuvals[1];
