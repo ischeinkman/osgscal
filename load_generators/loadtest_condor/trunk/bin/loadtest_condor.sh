@@ -36,6 +36,7 @@ function Usage
    echo "Where options is any combination of:"
    echo "  -type <universe> [opts] (REQUIRED)"
    echo "        grid gt2 <resource_name> : Submit Grid GT2 jobs"
+   echo "        grid cream <url> <batch> <queue> : Submit Grid CREAM jobs"
    echo "        vanilla                  : Submit vanilla jobs"
    echo "        local                    : Submit local jobs"
    echo "  -req[uirements] : Requirements of the job"
@@ -79,8 +80,15 @@ do case "$1" in
        if [ "$JobUniverse" == "grid" ]; then
          shift
          GridType="$2"
-	 shift
-         GridResource="$2"
+         if [ "$GridType" == "cream" ]; then
+	    shift
+            GridResource="$2 $3 $4"
+            shift
+            shift
+         else # assume gt2-compatible format else
+            shift
+            GridResource="$2"
+         fi
        fi
        ;;
     -req | -requirements)    
