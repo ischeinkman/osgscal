@@ -30,6 +30,9 @@ class SysLogger(Plugin):
           self.sysfac = sysfacs[int(opt[1])]
         except (ValueError, IndexError):
           raise ValueError, "Invalid argument for %s:%s" % (opt[0], opt[1])
+          
+    if len(args) > 0:
+      self.xmlPath = args[0]
 
   def printHelp(self):
     print '''\
@@ -44,7 +47,7 @@ logger = SysLogger()
 logger.getArgs(sys.argv[1:])
 
 # this script requires path of xml file to be parsed as input argument
-if logger.path is None:
+if logger.xmlPath is None:
   logger.printHelp()
   sys.exit(1)
 

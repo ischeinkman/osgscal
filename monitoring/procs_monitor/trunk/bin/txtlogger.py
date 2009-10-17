@@ -20,6 +20,7 @@ class TxtLogger(Plugin):
     optlist, args = getopt.getopt(argv, self.options)
     
     if len(args) > 1:
+      self.xmlPath = args[0]
       self.outdir = args[1]
 
   def printHelp(self):
@@ -33,7 +34,7 @@ Usage: %s [options] XMLPATH OUTDIR
 logger = TxtLogger()
 logger.getArgs(sys.argv[1:])
 
-if logger.path is None or logger.outdir is None:
+if logger.xmlPath is None or logger.outdir is None:
   logger.printHelp()
   sys.exit(1)
 

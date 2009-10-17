@@ -14,10 +14,10 @@ class XMLFileError(Exception):
 class Plugin(object):
   def __init__(self):
     self.options = 'ht:'
-    self.path = None
+    self.xmlPath = None
     self.threshold = None
     self.helpFlag = False
-  
+    self.confPath = None  
     # values to be parsed from xml
     self.updated = None
     self.error = None
@@ -36,15 +36,18 @@ class Plugin(object):
         except ValueError:
           raise ValueError, "Invalid argument for %s:%s" % (opt[0], opt[1])
 
-    if len(args) > 0:
-      self.path = args[0]
+# this assumed a plugin would always have XMLPATH as first argument
+# however now plugins might have a config file as it's only argument instead
+# so set this in inherited plugins
+#    if len(args) > 0:
+#      self.xmlPath = args[0]
 
   def withinThresh(self):
-    return time.time() - os.path.getmtime(self.path) <= float(self.threshold)
+    return time.time() - os.path.getmtime(self.xmlPath) <= float(self.threshold)
 
   # ET.parse may raise Exception
   def parseXML(self):
-    doc = ET.parse(self.path)
+    doc = ET.parse(self.xmlPath)
     
     self.updated = getUpdated(doc)
     self.error = getError(doc)
@@ -53,7 +56,10 @@ class Plugin(object):
     self.processes = getProcs(doc)
     
   def printHelp(self):
-     pass
+    pass
+
+  def parseConf(self):
+    pass
 
 '''class Plugin(object):
   # ET.parse may raise Exception
