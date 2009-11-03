@@ -54,6 +54,15 @@ if [ "${CreateOutFile}" -eq 1 ]; then
 fi
 
 
+# Random Time sleeping.
+function RandomExit {
+    TimeToSleep="$1"
+    if [ -z "${TimeToSleep}" ] || [ "${TimeToSleep}" -lt 0 ]; then
+	TimeToSleep=${FIXEDSleepingTimeDefault}
+    fi
+    let "StillToSleep=(3*$TimeToSleep/4)+($RANDOM*$TimeToSleep/32768/2)"
+}
+
 # Fixed Time sleeping.
 function FixedExit {
     TimeToSleep="$1"
@@ -103,6 +112,7 @@ function IntervalExit {
 }
 
 case ${RunType} in 
+random ) RandomExit "${RunVal}" ;; 
 fixed ) FixedExit "${RunVal}" ;; 
 sync ) UTimeExit "${RunVal}";; 
 interval ) IntervalExit "${TimeSent}" "${RunVal}";; 

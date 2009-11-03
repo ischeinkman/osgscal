@@ -36,12 +36,14 @@ function Usage
    echo "Where options is any combination of:"
    echo "  -type <universe> [opts] (REQUIRED)"
    echo "        grid gt2 <resource_name> : Submit Grid GT2 jobs"
+   echo "        grid gt5 <resource_name> : Submit Grid GRAM5 jobs"
    echo "        grid cream <url> <batch> <queue> : Submit Grid CREAM jobs"
    echo "        vanilla                  : Submit vanilla jobs"
    echo "        local                    : Submit local jobs"
    echo "  -req[uirements] : Requirements of the job"
    echo "                    This maps to RSL for GT2 and REQUIREMENTS for vanilla jobs"
-   echo "  -end fixed|sync|int[erval] <val> (REQUIRED)"
+   echo "  -end random|fixed|sync|int[erval] <val> (REQUIRED)"
+   echo "       random <seconds>   : Each job will sleep a random number of seconds (val+-25%)"
    echo "       fixed <seconds>    : Each job will sleep a fixed amount of seconds"
    echo "       sync <unix_time>   : All jobs will try to end exactly at the same time"
    echo "       interval <seconds> : All jobs will end at the next multiple of seconds"
@@ -140,6 +142,15 @@ fi
 
 TimeSent=`date +"%s"`
 case ${RunType} in 
+    random )
+      RunTypeCode="1"
+      if [ "${RunVal}" -gt 0 ]; then
+	  CmdArgs="random ${RunVal}"
+      else
+	  echo "Invalid random period '${RunVal}' (must be positive number)" 1>&2
+	  exit 1
+      fi
+      ;; 
     fixed )
       RunTypeCode="1"
       if [ "${RunVal}" -gt 0 ]; then
@@ -242,6 +253,8 @@ if [ "$JobUniverse" == "grid" ]; then
     if [ -n "${JobRequirements}" ]; then
 	if [ "${GridType}" == "gt2" ]; then
 	    echo "globus_rsl = ${JobRequirements}"  >> "${CondorSubmitFile}"
+        elif [ "${GridType}" == "gt5" ]; then
+            echo "globus_rsl = ${JobRequirements}"  >> "${CondorSubmitFile}"
 	else
 	    echo "Don't know how to handle requirements for Grid type '${GridType}'" 1>&2
 	    echo "Aborting" 2>&1
