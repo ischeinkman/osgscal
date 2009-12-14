@@ -150,14 +150,15 @@ class GlideKeeperThread(threading.Thread):
             more_per_entry=additional_glideins
         
         # here we have all the data needed to build a GroupAdvertizeType object
-        advertize_group_obj=glideinFrontendInterface.GroupAdvertizeType(self.glidekeeper_id,self.glidekeeper_id,"main",
-                                                                        web_url,
-                                                                        signatureDescript.frontend_descript_fname, signatureDescript.group_descript_fname,
-                                                                        signatureDescript.signature_type, signatureDescript.frontend_descript_signature, signatureDescript.group_descript_signature,
-                                                                        [('0',self.proxy_data)])
+        descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
+                                                                      web_url,
+                                                                      signatureDescript.frontend_descript_fname,
+                                                                      signatureDescript.signature_type, signatureDescript.frontend_descript_signature,
+                                                                      [('0',self.proxy_data)])
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
+        advertizer=glideinFrontendInterface.MultiAdvertizeWork(descript_obj)
         for glideid in glidein_dict.keys():
             factory_pool_node,glidename=glideid
             glidein_el=glidein_dict[glideid]
