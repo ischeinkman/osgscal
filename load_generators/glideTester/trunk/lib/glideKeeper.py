@@ -149,12 +149,12 @@ class GlideKeeperThread(threading.Thread):
             # if we have just 2 or less, ask each the maximum
             more_per_entry=additional_glideins
         
-        # here we have all the data needed to build a GroupAvertizeType object
-        advertize_group_obj=glideinFrontendInterface.GroupAvertizeType(self.glidekeeper_id,self.glidekeeper_id,"main",
-                                                                       web_url,
-                                                                       signatureDescript.frontend_descript_fname, signatureDescript.group_descript_fname,
-                                                                       signatureDescript.signature_type, signatureDescript.frontend_descript_signature, signatureDescript.group_descript_signature,
-                                                                       [('0',self.proxy_data)])
+        # here we have all the data needed to build a GroupAdvertizeType object
+        advertize_group_obj=glideinFrontendInterface.GroupAdvertizeType(self.glidekeeper_id,self.glidekeeper_id,"main",
+                                                                        web_url,
+                                                                        signatureDescript.frontend_descript_fname, signatureDescript.group_descript_fname,
+                                                                        signatureDescript.signature_type, signatureDescript.frontend_descript_signature, signatureDescript.group_descript_signature,
+                                                                        [('0',self.proxy_data)])
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
