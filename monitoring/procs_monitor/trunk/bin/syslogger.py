@@ -1,4 +1,18 @@
 #!/usr/bin/python
+#
+#  syslogger.py
+#
+#  Description:
+#    Updates syslog file.
+#
+#  Usage:
+#    syslogger.py [options] XMLPATH
+#
+#  Author:
+#    Jeff Dost (Sept 2009)
+#
+##
+
 import sys
 
 import syslog
@@ -6,19 +20,22 @@ import syslog
 import os
 import getopt
 
+# add lib folder to import path
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
 from plugin import Plugin
 from plugin import XMLFileError
 
+# list of syslog facility numbers
 sysfacs = [syslog.LOG_LOCAL0, syslog.LOG_LOCAL1, syslog.LOG_LOCAL2, syslog.LOG_LOCAL3,
   syslog.LOG_LOCAL4, syslog.LOG_LOCAL5, syslog.LOG_LOCAL6, syslog.LOG_LOCAL7];
 
 class SysLogger(Plugin):
   def __init__(self):
     super(SysLogger, self).__init__()
-    self.options += 's:'
+    # add option to choose syslog facility
+    self.options += 's:' 
     self.sysfac = sysfacs[0]
 
   def getArgs(self, argv):
@@ -43,6 +60,13 @@ Usage: %s [options] XMLPATH
     -t n      threshold n seconds long.  xml file older than threshold
               will not be logged.  disabled by default (always logs)''' % sys.argv[0]
 
+##
+#
+# Main
+#
+##
+
+# create plugin and get command line arguments
 logger = SysLogger()
 logger.getArgs(sys.argv[1:])
 
@@ -57,6 +81,7 @@ if logger.helpFlag:
 
 syslog.openlog('osgmonitor', syslog.LOG_PID, logger.sysfac)
 
+# exit if threshold was used and xml file is stale
 if logger.threshold is not None:
   try:
     if not logger.withinThresh():

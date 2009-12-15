@@ -1,4 +1,17 @@
 #!/usr/bin/perl -w
+#
+# proc_collector.pl
+# 
+# Description:
+#   Collect load and process info and parse to xml file
+#
+# Usage:
+#   proc_collector.pl CONFIG-FILE
+#
+# Author:
+#   Jeff Dost (Sept 2009) derived from osgmonitoring.pl
+#   from osgmonitoring.rpm created by Toni Coarasa (2008)
+#
  
 use strict;
 #use Sys::Hostname;

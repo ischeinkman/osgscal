@@ -1,10 +1,24 @@
 #!/usr/bin/python
+#
+#  ganglogger.py
+#
+#  Description:
+#    Uses Ganglia gmetric tool to send process info to Ganglia monitoring system
+#
+#  Usage:
+#    ganglogger.py [options] CONFIGFILE
+#
+#  Author:
+#    Jeff Dost (Oct 2009)
+#
+##
+
 import sys
 import os
 import time
-#import rrdtool
 import getopt
 
+# add lib folder to import path
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
@@ -14,7 +28,7 @@ import configUtils
 class GangLogger(Plugin):
   def __init__(self):
     super(GangLogger, self).__init__()
-    self.sendTypes = []
+    self.sendTypes = [] # list of metrics chosen to send for each process
  
   def getArgs(self, argv):
     super(GangLogger, self).getArgs(argv)
@@ -30,10 +44,12 @@ Usage: %s [options] CONFIGFILE
     -h        show this help page
     -t n      threshold n seconds long.  xml file older than threshold
               will not be logged.  disabled by default (always logs)''' % sys.argv[0]  
+
   def parseConf(self):
     confDict = {'xmlpath' : None,
                 'send_type' : None}
 
+    # parse values from config file, try default values if not found
     configUtils.parse(self.confPath, confDict)
 
     if confDict['xmlpath'] is None:
@@ -44,10 +60,12 @@ Usage: %s [options] CONFIGFILE
     if confDict['send_type'] is None:
       return
 
+    # if wildcard, prepare all metrics
     if confDict['send_type'] == '*':
       self.sendTypes = ['pcpu', 'pmem', 'vsize', 'rss', 'procs', 'files']
       return
 
+    # otherwise prepare each one listed
     sendTypes = confDict['send_type'].split(',')
     sendTypes = [type.strip() for type in sendTypes]
     for type in sendTypes:
@@ -60,6 +78,13 @@ Usage: %s [options] CONFIGFILE
         raise IOError, "Error parsing %s: invalid send_type: %s" % (self.confPath,
           type)
 
+##
+#
+# Main
+#
+##
+
+# create plugin and get command line arguments
 logger = GangLogger()
 logger.getArgs(sys.argv[1:])
 
@@ -71,6 +96,7 @@ if logger.helpFlag:
   logger.printHelp()
   sys.exit(0)
 
+# exit if threshold was used and xml file is stale
 if logger.threshold is not None:
   if not logger.withinThresh():
     sys.exit(0)
@@ -86,6 +112,7 @@ step = 300
 #step = 30
 heartbeat = 1800
 
+# traverse processes and send metrics
 for proc in logger.processes:
   for type in logger.sendTypes:
     os.system("gmetric --name %s_%s --value %f --type float --tmax=%s --dmax=%s"

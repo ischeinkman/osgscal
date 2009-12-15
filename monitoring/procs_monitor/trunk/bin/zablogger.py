@@ -1,9 +1,24 @@
 #!/usr/bin/python
+#
+#  zablogger.py
+#
+#  Description:
+#    Uses zabbix_sender tool to send process info to Zabbix monitoring system
+#
+#  Usage:
+#    zablogger.py [options] CONFIGFILE
+#
+#  Author:
+#    Jeff Dost (Nov 2009)
+#
+##
+
 import sys
 import os
 import time
 import getopt
 
+# add lib folder to import path
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
@@ -13,10 +28,12 @@ import configUtils
 class ZabLogger(Plugin):
   def __init__(self):
     super(ZabLogger, self).__init__()
-    self.sendTypes = []
+    self.sendTypes = [] # list of metrics chosen to send for each process
+    # zabbix server arguments for zabbix_sender
     self.zabServer = None
     self.port = None
     self.host = None
+    # add option for verbose mode
     self.options += 'v'
     self.verbose = False
  
@@ -47,6 +64,7 @@ Usage: %s [options] CONFIGFILE
                 'port' : None,
                 'host' : None}
 
+    # parse values from config file, try default values if not found
     configUtils.parse(self.confPath, confDict)
 
     if confDict['xmlpath'] is None:
@@ -54,8 +72,10 @@ Usage: %s [options] CONFIGFILE
     else:
       self.xmlPath = confDict['xmlpath']
 
+    # if wildcard, prepare all metrics
     if confDict['send_type'] == '*':
       self.sendTypes = ['pcpu', 'pmem', 'vsize', 'rss', 'procs', 'files']
+    # otherwise prepare each one listed
     elif confDict['send_type'] is not None:
       sendTypes = confDict['send_type'].split(',')
       sendTypes = [type.strip() for type in sendTypes]
@@ -87,6 +107,13 @@ Usage: %s [options] CONFIGFILE
     else:
       self.host = confDict['host']
 
+##
+#
+# Main
+#
+##
+
+# create plugin and get command line arguments
 logger = ZabLogger()
 logger.getArgs(sys.argv[1:])
 
@@ -98,6 +125,7 @@ if logger.helpFlag:
   logger.printHelp()
   sys.exit(0)
 
+# exit if threshold was used and xml file is stale
 if logger.threshold is not None:
   if not logger.withinThresh():
     sys.exit(0)
@@ -109,8 +137,10 @@ logger.parseXML()
 if logger.error['flag']:
   sys.exit(0)
 
+# traverse processes and send metrics
 for proc in logger.processes:
   for type in logger.sendTypes:
+    # if verbose mode, print commmand and output of zabbix_sender
     if logger.verbose == True:
       outstring = "zabbix_sender -z %s -p %i -s %s -k %s.%s -o %f" % (
         logger.zabServer, logger.port, logger.host, proc['name'], type, proc[type])
@@ -120,5 +150,3 @@ for proc in logger.processes:
         logger.zabServer, logger.port, logger.host, proc['name'], type, proc[type])
 
     os.system(outstring)
-    #os.system("zabbix_sender -z %s -p %i -s %s -k %s.%s -o %f"
-    #  % (logger.zabServer, logger.port, logger.host, proc['name'], type, proc[type]))
