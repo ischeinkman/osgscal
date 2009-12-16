@@ -61,6 +61,7 @@ class GlideKeeperThread(threading.Thread):
 
         self.need_cleanup = False # if never requested more than 0, then no need to do cleanup
 
+        self.running_glideins=0
         self.last_error=None
 
         ##############################
@@ -70,6 +71,10 @@ class GlideKeeperThread(threading.Thread):
     # in all other cases, it is just requesting for more, if appropriate
     def request_glideins(self,needed_glideins):
         self.needed_glidein=needed_glideins
+
+    # use this for monitoring
+    def get_running_glideins(self):
+        return self.running_glideins
 
     def soft_kill(self):
         self.shutdown=True
@@ -127,6 +132,7 @@ class GlideKeeperThread(threading.Thread):
         pool_status.load(None,[])
         running_glideins=len(pool_status.fetchStored())
         del pool_status
+        self.running_glideins=running_glideins
 
         # query WMS collector
         glidein_dict={}
