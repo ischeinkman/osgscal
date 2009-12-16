@@ -63,6 +63,9 @@ class ArgsParser:
         self.gfactoryNode=None
         self.gfactoryConstraint=None
         self.gfactoryClassadID=None
+        self.webUrl=None
+        self.descriptFile=None
+        self.descriptSignature=None
 
         # read the values
         for line in lines:
@@ -88,6 +91,12 @@ class ArgsParser:
                 self.gFactoryConstraint=val
             elif key=='gfactoryClassadID':
                 self.gfactoryClassadID=val
+            elif key=='webURL':
+                self.webURL=val
+            elif key=='descriptFile':
+                self.descriptFile=val
+            elif key=='descriptSignature':
+                self.descriptSignature=val
             else:
                 raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
 
@@ -104,13 +113,23 @@ class ArgsParser:
                 raise RuntimeError, "proxyFile was not defined, and '%s' does not exist!"%self.proxyFile
         if self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
+        if self.webURL==None:
+            raise RuntimeError, "webURL was not defined!"
+        if self.descriptFile==None:
+            raise RuntimeError, "descriptFile was not defined!"
+        if self.descriptSignature==None:
+            raise RuntimeError, "descriptSignature was not defined!"
+        # it would be wise to verify the signature here, but will not do just now
+        # to be implemented
+        
 
 
 def run(config):
     sys.path.append(os.path.join(config.glideinWMSDir,"lib"))
     sys.path.append(os.path.join(config.glideinWMSDir,"frontend"))
     import glideKeeper
-    gktid=glideKeeper.glideKeeperThread(config.runId,
+    gktid=glideKeeper.glideKeeperThread(config.webUrl,self.descriptName,config.descriptSignature,
+                                        config.runId,
                                         config.gfactoryClassadID,
                                         [config.gfactoryNode],config.gFactoryConstraint,
                                         config.proxyFile)
