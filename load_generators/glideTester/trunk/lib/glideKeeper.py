@@ -19,13 +19,20 @@ import glideinFrontendInterface
 import condorMonitor
 
 class GlideKeeperThread(threading.Thread):
-    def __init__(self,glideinkeeper_id,classad_id,
+    def __init__(self,
+                 web_url,descript_fname,descript_signature,
+                 glideinkeeper_id,classad_id,
                  factory_pools,factory_constraint,
                  proxy_fname):
         threading.Thread(self)
         # consts
         self.signature_type = "sha1"
         self.max_request=100
+
+        # strings, describe Web downloadable info
+        self.web_url=web_url
+        self.descript_fname=descript_fname
+        self.descript_signature=descript_signature
 
         # string, used for identification
         self.glidekeeper_id=glidekeeper_id
@@ -151,9 +158,8 @@ class GlideKeeperThread(threading.Thread):
         
         # here we have all the data needed to build a GroupAdvertizeType object
         descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
-                                                                      web_url,
-                                                                      signatureDescript.frontend_descript_fname,
-                                                                      signatureDescript.signature_type, signatureDescript.frontend_descript_signature,
+                                                                      self.web_url,self.descript_fname,
+                                                                      self.signature_type,self.descript_signature,
                                                                       [('0',self.proxy_data)])
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
