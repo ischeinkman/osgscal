@@ -1,0 +1,5 @@
+glideinWMSDir=/home/sfiligoi/dev/glideinWMS
+#proxyFile=pathtomyproxy
+gfactoryNode=glidein-1.t2.ucsd.edu
+gfactoryConstraint=(FactoryType=?="sleeper")
+gfactoryClassadID=sfiligoi@glidein-1.t2.ucsd.edu
