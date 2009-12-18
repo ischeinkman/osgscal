@@ -1,5 +1,19 @@
+################
+# Local params
+#
 glideinWMSDir=/home/sfiligoi/dev/glideinWMS
 #proxyFile=pathtomyproxy
+
+################
+# gfactory attrs
+#
 gfactoryNode=glidein-1.t2.ucsd.edu
 gfactoryConstraint=(FactoryType=?="sleeper")
 gfactoryClassadID=sfiligoi@glidein-1.t2.ucsd.edu
+
+################
+# Web attrs
+#
+webURL=http://sfiligoi-desktop.ucsd.edu/tester/v1
+descriptFile=description.9cfdnb.cfg
+descriptSignature=49e2e16aa8bf470b11145810440e1b842b78a245
