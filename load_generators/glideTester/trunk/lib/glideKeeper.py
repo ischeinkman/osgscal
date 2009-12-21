@@ -48,9 +48,6 @@ class GlideKeeperThread(threading.Thread):
         # string or None
         self.factory_constraint=factory_constraint
 
-        # file name of the proxy to be used, cannot be None
-        if proxy_fname==None:
-            raise TypeError, "proxy_file cannot be None"
         self.proxy_fname=proxy_fname
         self.reload_proxy() # provides proxy_data
 
@@ -102,6 +99,10 @@ class GlideKeeperThread(threading.Thread):
     ##############
     # INTERNAL
     def reload_proxy(self):
+        if self.proxy_fname==None:
+            self.proxy_data=None
+            return
+        
         proxy_fd=open(self.proxy_fname,'r')
         try:
             self.proxy_data=proxy_fd.read()
@@ -140,7 +141,7 @@ class GlideKeeperThread(threading.Thread):
             factory_pool_node=factory_pool[0]
             factory_identity=factory_pool[1]
             try:
-                factory_glidein_dict=glideinFrontendInterface.findGlideins(factory_pool_node,self.signature_type,self.factory_constraint,have_proxy=True,get_only_matching=True)
+                factory_glidein_dict=glideinFrontendInterface.findGlideins(factory_pool_node,self.signature_type,self.factory_constraint,self.proxy_data!=None,get_only_matching=True)
             except RuntimeError, e:
                 factory_glidein_dict={} # in case of error, treat as there is nothing there
 
@@ -163,10 +164,14 @@ class GlideKeeperThread(threading.Thread):
             more_per_entry=additional_glideins
         
         # here we have all the data needed to build a GroupAdvertizeType object
+        if self.proxy_data==None:
+            proxy_arr=None
+        else:
+            proxy_arr=[('0',self.proxy_data)]
         descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
                                                                       self.web_url,self.descript_fname,
                                                                       self.signature_type,self.descript_signature,
-                                                                      [('0',self.proxy_data)])
+                                                                      proxy_arr)
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
