@@ -1,6 +1,10 @@
 #######################################################
 #
-# Web files creation module
+# Description:
+#   Web files creation module
+#
+# Author:
+#   Igor Sfiligoi @ UCSD
 #
 #######################################################
 
