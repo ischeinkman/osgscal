@@ -49,6 +49,14 @@ class ArgsParser:
         # load external values
         self.load_config()
 
+        # set search path
+        sys.path.append(os.path.join(self.glideinWMSDir,"lib"))
+        sys.path.append(os.path.join(self.glideinWMSDir,"creation/lib"))
+        sys.path.append(os.path.join(self.glideinWMSDir,"frontend"))
+
+        self.load_config_dir()
+        
+
     def load_config(self):
         # first load file, so we dcheck it is readable
         fd=open(self.config,'r')
@@ -59,13 +67,11 @@ class ArgsParser:
 
         # reset the values
         self.glideinWMSDir=None
+        self.configDir=None
         self.proxyFile=None
         self.gfactoryNode=None
         self.gfactoryConstraint=None
         self.gfactoryClassadID=None
-        self.webUrl=None
-        self.descriptFile=None
-        self.descriptSignature=None
 
         # read the values
         for line in lines:
@@ -81,6 +87,10 @@ class ArgsParser:
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
                 self.glideinWMSDir=val
+            elif key=='configDir':
+                if not os.path.exists(val):
+                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
+                self.configDir=val
             elif key=='proxyFile':
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
@@ -91,12 +101,6 @@ class ArgsParser:
                 self.gFactoryConstraint=val
             elif key=='gfactoryClassadID':
                 self.gfactoryClassadID=val
-            elif key=='webURL':
-                self.webURL=val
-            elif key=='descriptFile':
-                self.descriptFile=val
-            elif key=='descriptSignature':
-                self.descriptSignature=val
             else:
                 raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
 
@@ -104,29 +108,30 @@ class ArgsParser:
         # and assign defaults, if needed
         if self.glideinWMSDir==None:
             raise RuntimeError, "glideinWMSDir was not defined!"
-        if self.proxyFile==None:
-            if os.environ.has_key('X509_USER_PROXY'):
-                self.proxyFile=os.environ['X509_USER_PROXY']
-            else:
-                self.proxyFile='/tmp/x509us_u%i'%os.getuid()
-            if not os.path.exists(self.proxyFile):
-                raise RuntimeError, "proxyFile was not defined, and '%s' does not exist!"%self.proxyFile
+        if self.configDir==None:
+            raise RuntimeError, "configDir was not defined!"
+        #if self.proxyFile==None:
+        #    if os.environ.has_key('X509_USER_PROXY'):
+        #        self.proxyFile=os.environ['X509_USER_PROXY']
+        #    else:
+        #        self.proxyFile='/tmp/x509us_u%i'%os.getuid()
+        #    if not os.path.exists(self.proxyFile):
+        #        raise RuntimeError, "proxyFile was not defined, and '%s' does not exist!"%self.proxyFile
         if self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
-        if self.webURL==None:
-            raise RuntimeError, "webURL was not defined!"
-        if self.descriptFile==None:
-            raise RuntimeError, "descriptFile was not defined!"
-        if self.descriptSignature==None:
-            raise RuntimeError, "descriptSignature was not defined!"
         # it would be wise to verify the signature here, but will not do just now
         # to be implemented
         
+    def load_config_dir(self):
+        import cgkWDictFile
+        self.frontend_dicts=cgkWDictFile.glideKeeperDicts(self.configDir)
+        self.frontend_dicts.load()
+
+        self.webURL=self.frontend_dicts.dicts['frontend_descript']['WebURL']
+        self.descriptSignature,self.descriptFile=self.frontend_dicts.dicts['summary_signature']['main']
 
 
 def run(config):
-    sys.path.append(os.path.join(config.glideinWMSDir,"lib"))
-    sys.path.append(os.path.join(config.glideinWMSDir,"frontend"))
     import glideKeeper
     gktid=glideKeeper.glideKeeperThread(config.webUrl,self.descriptName,config.descriptSignature,
                                         config.runId,
