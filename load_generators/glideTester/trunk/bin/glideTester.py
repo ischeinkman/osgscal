@@ -146,7 +146,7 @@ def run(config):
         # most of the code goes here
 	
 	# first load the file, so we check it is readable
-	fd=open('parameters.config', 'r')
+	fd=open('parameters.cfg', 'r')
 	try:
 		lines=fd.readlines()
 	finally:
@@ -198,7 +198,7 @@ def run(config):
 
 		# request the glideins
 		# we want 10% more glideins than the concurrency level
-		totalGlideins=int(int(concurrencyLevel[i]) + .1*int(concurrencyLevel[i]))
+		totalGlideins=int(int(concurrencyLevel[i]) + .1 * int(concurrencyLevel[i]))
 #		gktid.request_glideins(totalGlideins)
 		
 		# now we create the directories for each job and a submit file
@@ -230,15 +230,34 @@ def run(config):
 			for i in range(0, int(concurrencyLevel[k]), 1):
 				dir2='./' + dir1 + '/' + 'job' + str(i) + '/'
 				os.makedirs(dir2)
+			FILE.close()
+
+		# need to figure out when we have all the glideins
+		# need to ask the glidekeeper object
+		finished="false"
+		while finished !="true":
+			numberGlideins=gktid.get_running_glideins()
+			if numberGlideins=totalGlideins:
+				finished="true"
 
 		# now we begin submission and monitoring
 		start=time.time()
 
 		# Need to figure this part out
- 		submission=condorManager.condorSubmitOne
-		check1=condorMonitor.CondorQ
+ 		submission=condorManager.condorSubmitOne(filename)
+		running="true"
+		while running!="false":	
+			check1=condorMonitor.CondorQ()
+			# Not sure if this is the correct constraint to put on the monitor
+			if check1==None:
+				running="false"
 
-		# Cleanup all the directories and files made
+		# Need to check log files for when last job finished
+		#logCheck=open(logfile, "r")
+		
+
+	# Cleanup all the directories and files made
+
 #        pass
     finally:
         gktid.soft_kill()
