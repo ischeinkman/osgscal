@@ -7,6 +7,7 @@ import subprocess
 from subprocess import Popen
 
 STARTUP_DIR = sys.path[0]
+ROOT_DIR = os.path.join(STARTUP_DIR,"../")
 NUM_OPTIONS = 5
 INTERVAL = 5 # time interval for cron calls
 THRESHOLD = 1800 # threshold for plugins
@@ -39,72 +40,72 @@ def updateConfPath(path, instdir):
 '''
 def populateDirs(instdir, options):
   # copy collector files
-  shutil.copyfile("%s/bin/proc_collector.pl" % STARTUP_DIR,
+  shutil.copyfile("%s/bin/proc_collector.pl" % ROOT_DIR,
     "%s/bin/proc_collector.pl" % instdir)
   os.chmod("%s/bin/proc_collector.pl" % instdir, 0755)
 
-  shutil.copyfile("%s/etc/osgmonitoring.conf" % STARTUP_DIR,
+  shutil.copyfile("%s/etc/osgmonitoring.conf" % ROOT_DIR,
     "%s/etc/osgmonitoring.conf" % instdir)
   os.chmod("%s/etc/osgmonitoring.conf" % instdir, 0644)
   updateConfPath("%s/etc/osgmonitoring.conf" % instdir, instdir)
 
-  shutil.copyfile("%s/etc/procs_to_watch.conf" % STARTUP_DIR,
+  shutil.copyfile("%s/etc/procs_to_watch.conf" % ROOT_DIR,
     "%s/etc/procs_to_watch.conf" % instdir)
   os.chmod("%s/etc/procs_to_watch.conf" % instdir, 0644)
 
-  shutil.copyfile("%s/lib/plugin.py" % STARTUP_DIR,
+  shutil.copyfile("%s/lib/plugin.py" % ROOT_DIR,
     "%s/lib/plugin.py" % instdir)
   os.chmod("%s/lib/plugin.py" % instdir, 0644)
 
-  shutil.copyfile("%s/lib/configUtils.py" % STARTUP_DIR,
+  shutil.copyfile("%s/lib/configUtils.py" % ROOT_DIR,
     "%s/lib/configUtils.py" % instdir)
   os.chmod("%s/lib/configUtils.py" % instdir, 0644)
 
-  shutil.copyfile("%s/lib/rrdSupport.py" % STARTUP_DIR,
+  shutil.copyfile("%s/lib/rrdSupport.py" % ROOT_DIR,
     "%s/lib/rrdSupport.py" % instdir)
   os.chmod("%s/lib/rrdSupport.py" % instdir, 0644)
 
   # will fail if not root
   if 1 in options:
-    shutil.copyfile("%s/bin/syslogger.py" % STARTUP_DIR,
+    shutil.copyfile("%s/bin/syslogger.py" % ROOT_DIR,
       "%s/bin/syslogger.py" % instdir)
     os.chmod("%s/bin/syslogger.py" % instdir, 0755)
 
-    shutil.copyfile("%s/etc/osg_log_rotate" % STARTUP_DIR,
+    shutil.copyfile("%s/etc/osg_log_rotate" % ROOT_DIR,
       "/etc/logrotate.d/osgmonitoring")
     os.chmod("/etc/logrotate.d/osgmonitoring", 0644)
 
   if 2 in options:
-    shutil.copyfile("%s/bin/txtlogger.py" % STARTUP_DIR,
+    shutil.copyfile("%s/bin/txtlogger.py" % ROOT_DIR,
       "%s/bin/txtlogger.py" % instdir)
     os.chmod("%s/bin/txtlogger.py" % instdir, 0755)
 
   if 3 in options:
-    shutil.copyfile("%s/bin/rrdlogger.py" % STARTUP_DIR,
+    shutil.copyfile("%s/bin/rrdlogger.py" % ROOT_DIR,
       "%s/bin/rrdlogger.py" % instdir)
     os.chmod("%s/bin/rrdlogger.py" % instdir, 0755)
 
-    shutil.copyfile("%s/etc/rrdlogger.conf" % STARTUP_DIR,
+    shutil.copyfile("%s/etc/rrdlogger.conf" % ROOT_DIR,
       "%s/etc/rrdlogger.conf" % instdir)
     updateConfPath("%s/etc/rrdlogger.conf" % instdir, instdir)
     os.chmod("%s/etc/rrdlogger.conf" % instdir, 0644)
 
   if 4 in options:
-    shutil.copyfile("%s/bin/ganglogger.py" % STARTUP_DIR,
+    shutil.copyfile("%s/bin/ganglogger.py" % ROOT_DIR,
       "%s/bin/ganglogger.py" % instdir)
     os.chmod("%s/bin/ganglogger.py" % instdir, 0755)
 
-    shutil.copyfile("%s/etc/ganglogger.conf" % STARTUP_DIR,
+    shutil.copyfile("%s/etc/ganglogger.conf" % ROOT_DIR,
       "%s/etc/ganglogger.conf" % instdir)
     updateConfPath("%s/etc/ganglogger.conf" % instdir, instdir)
     os.chmod("%s/etc/ganglogger.conf" % instdir, 0644)
 
   if 5 in options:
-    shutil.copyfile("%s/bin/zablogger.py" % STARTUP_DIR,
+    shutil.copyfile("%s/bin/zablogger.py" % ROOT_DIR,
       "%s/bin/zablogger.py" % instdir)
     os.chmod("%s/bin/zablogger.py" % instdir, 0755)
 
-    shutil.copyfile("%s/etc/zablogger.conf" % STARTUP_DIR,
+    shutil.copyfile("%s/etc/zablogger.conf" % ROOT_DIR,
       "%s/etc/zablogger.conf" % instdir)
     updateConfPath("%s/etc/zablogger.conf" % instdir, instdir)
     os.chmod("%s/etc/zablogger.conf" % instdir, 0644)
