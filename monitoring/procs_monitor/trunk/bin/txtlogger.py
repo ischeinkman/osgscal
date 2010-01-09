@@ -21,6 +21,7 @@ import getopt
 # add lib folder to import path
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
+sys.path.append("/usr/local/lib/procs_monitor")
 
 from plugin import Plugin
 from plugin import XMLFileError

@@ -298,7 +298,7 @@ unless (defined ($ConfigurationData{'procs_conf'}{'value'}))
 
 unless (defined ($ConfigurationData{'out_file'}{'value'}))
 {
-  $ConfigurationData{'out_file'}{'value'} = "$dirname/../etc/osgmonitoring.xml";
+  $ConfigurationData{'out_file'}{'value'} = "$dirname/../osgmonitoring.xml";
 }
 
 #Check All Our Variables Were Read

@@ -21,6 +21,7 @@ import getopt
 # add lib folder to import path
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
+sys.path.append("/usr/local/lib/procs_monitor")
 
 from plugin import Plugin
 import configUtils
@@ -53,7 +54,7 @@ Usage: %s [options] CONFIGFILE
     configUtils.parse(self.confPath, confDict)
 
     if confDict['xmlpath'] is None:
-      self.xmlPath = os.path.join(STARTUP_DIR,"../etc/osgmonitoring.xml")
+      self.xmlPath = os.path.join(STARTUP_DIR,"../osgmonitoring.xml")
     else:
       self.xmlPath = confDict['xmlpath']
 
@@ -96,12 +97,13 @@ if logger.helpFlag:
   logger.printHelp()
   sys.exit(0)
 
+logger.parseConf()
+
 # exit if threshold was used and xml file is stale
 if logger.threshold is not None:
   if not logger.withinThresh():
     sys.exit(0)
 
-logger.parseConf()
 logger.parseXML()
 
 # check if xml reported collector error and if so do nothing
