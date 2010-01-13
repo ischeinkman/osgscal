@@ -202,14 +202,15 @@ def run(config):
 #		gktid.request_glideins(totalGlideins)
 		
 		# now we create the directories for each job and a submit file
-		loop=0
+		workingDir = os.getcwd()
 		for k in range(0, len(concurrencyLevel), 1):
-			dir1 = './' + 'test' + concurrencyLevel[k] + '/'
+			loop = 0
+			dir1 = workingDir + '/' + 'test' + concurrencyLevel[k] + '/'
 			os.makedirs(dir1)
-			logfile='test' + concurrencyLevel[k] + '.log'
-			outputfile='test' + concurrencyLevel[k] + '.out.$(Cluster)'
-			errorfile='test' + concurrencyLevel[k] + '.err.$(Cluster)'
-			filename=dir1 + 'submit' + '.condor'
+			logfile = dir1 + 'test' + concurrencyLevel[k] + '.log'
+			outputfile = dir1 + 'test' + concurrencyLevel[k] + '.out'
+			errorfile = dir1 + 'test' + concurrencyLevel[k] + '.err'
+			filename = dir1 + 'submit' + '.condor'
 			FILE=open(filename, "w")
 			FILE.write('universe=' + universe + '\n')
 			FILE.write('executable=' + executable' '\n')
@@ -218,17 +219,17 @@ def run(config):
 			FILE.write('Requirements=' + requirements + '\n')
 			FILE.write('+Owner=' + owner + '\n')
 			FILE.write('log=' + logfile + '\n')
-			FILE.write('output=' + outputfile + '\n')
+			FILE.write('output=' +  outputfile + '\n')
 			FILE.write('error=' + errorfile + '\n')
 			FILE.write('notification=' + notification + '\n' + '\n')
-			if arguments!=None:
+			if arguments != None:
 				FILE.write('Arguments =' + arguments + '\n')
 			for j in range(0, int(concurrencyLevel[k]), 1):
 				FILE.write('Initialdir = ' + 'job' + str(loop) + '\n')
 				FILE.write('Queue' + '\n' + '\n')
-				loop=loop+1
+				loop = loop + 1
 			for i in range(0, int(concurrencyLevel[k]), 1):
-				dir2='./' + dir1 + '/' + 'job' + str(i) + '/'
+				dir2 = dir1 + 'job' + str(i) + '/'
 				os.makedirs(dir2)
 			FILE.close()
 
@@ -236,24 +237,25 @@ def run(config):
 		# need to ask the glidekeeper object
 		finished="false"
 		while finished !="true":
-			numberGlideins=gktid.get_running_glideins()
-			if numberGlideins=totalGlideins:
-				finished="true"
+			numberGlideins = gktid.get_running_glideins()
+			if numberGlideins = totalGlideins:
+				finished = "true"
 
 		# now we begin submission and monitoring
-		start=time.time()
+		# we probably want to read this all out of the log file
+		#start = time.time()
 
 		# Need to figure this part out
  		submission=condorManager.condorSubmitOne(filename)
-		running="true"
-		while running!="false":	
+		running = "true"
+		while running ! ="false":	
 			check1=condorMonitor.CondorQ()
 			# Not sure if this is the correct constraint to put on the monitor
-			if check1==None:
-				running="false"
+			if check1 == None:
+				running = "false"
 
 		# Need to check log files for when last job finished
-		#logCheck=open(logfile, "r")
+		#logCheck = open(logfile, "r")
 		
 
 	# Cleanup all the directories and files made
