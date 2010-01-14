@@ -11,8 +11,8 @@
 ########################################
 
 import random
+import shutil
 import sys,os,os.path
-import time
 import condorMonitor
 import condorManager
 STARTUP_DIR=sys.path[0]
@@ -242,9 +242,7 @@ def run(config):
 				finished = "true"
 
 		# now we begin submission and monitoring
-		# we probably want to read this all out of the log file
-		#start = time.time()
-
+		
 		# Need to figure this part out
  		submission=condorManager.condorSubmitOne(filename)
 		running = "true"
@@ -254,11 +252,37 @@ def run(config):
 			if check1 == None:
 				running = "false"
 
-		# Need to check log files for when last job finished
-		#logCheck = open(logfile, "r")
-		
+		# Need to check log files for when first
+		# job submitted  and last job finished
+		hours=[]
+		minutes=[]
+		seconds=[]
+		logCheck = open(logfile, 'r')
+		try:
+			lines1 = logCheck.readlines()
+		finally:
+			logCheck.close()
+		for line in lines1:
+			line = line.strip()
+			if line[0:1] in ('(','.','U','R','J','C','G'):
+				continue # ignore unwanted text lines
+		        arr1=line.split(') ',1)
+		        if len(arr1) < 2:
+            			    continue
+        		arr2=arr1[1].split(' ',2)
+        		time=arr2[1].split(':',2)
+       			hours.append(int(time[0]))
+        		minutes.append(int(time[1]))
+        		seconds.append(int(time[2]))
+		diffHours = (hours[len(hours)-1] - hours[0]) * 3600
+		diffMinutes = (minutes[len(minutes)-1] - minutes[0]) * 60
+		diffSeconds = seconds[len(seconds)-1] - seconds[0]
+		totalTime = diffHours + diffMinutes + diffSeconds
 
-	# Cleanup all the directories and files made
+	
+
+		# Cleanup all the directories and files made
+		shutil.rmtree(dir1)	
 
 #        pass
     finally:
