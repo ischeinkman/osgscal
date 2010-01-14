@@ -213,7 +213,7 @@ def run(config):
 			filename = dir1 + 'submit' + '.condor'
 			FILE=open(filename, "w")
 			FILE.write('universe=' + universe + '\n')
-			FILE.write('executable=' + executable' '\n')
+			FILE.write('executable=' + executable + '\n')
 			FILE.write('transfer_executable=' + transfer_executable + '\n')
 			FILE.write('when_to_transfer_output=' + when_to_transfer_output + '\n')
 			FILE.write('Requirements=' + requirements + '\n')
