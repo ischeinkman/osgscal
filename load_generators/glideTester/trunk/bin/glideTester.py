@@ -146,60 +146,61 @@ def run(config):
         # most of the code goes here
 	
 	# first load the file, so we check it is readable
-	fd=open('parameters.cfg', 'r')
+	fd = open('parameters.cfg', 'r')
 	try:
-		lines=fd.readlines()
+		lines = fd.readlines()
 	finally:
 		fd.close()
 
 	# reset the values
-	executable=None
-	arguments=None
-	concurrency=None
-	owner=None
+	executable = None
+	arguments = None
+	concurrency = None
+	owner = None
 
 	# read the values
 	for line in lines:
-		line=line.strip()
+		line = line.strip()
 		if line[0:1] in ('#',''):
 			continue # ignore comments and empty lines
-		arr=line.split('=',1)
-		if len(arr)!=2:
+		arr = line.split('=',1)
+		if len(arr) != 2:
 			raise RuntimeError, 'Invalid parameter line, missing =: %s'%line
-		key=arr[0].strip()
-		val=arr[1].strip()
-		if key=='executable':
+		key = arr[0].strip()
+		val = arr[1].strip()
+		if key == 'executable':
 			if not os.path.exists(val):
 				raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
-			executable=val
-		elif key=='owner':
+			executable = val
+		elif key == 'owner':
 			owner=val
-		elif key=='arguments':
-			arguments=val
-		elif key='concurrency':
+		elif key == 'arguments':
+			arguments = val
+		elif key == 'concurrency':
 			concurrency=val
-	concurrencyLevel=concurrency.split()
+	concurrencyLevel = concurrency.split()
 
 	# make sure all the needed values have been read,
 	# and assign defaults, if needed
-	universe='vanilla'
-	if executable==None:
+	universe = 'vanilla'
+	if executable == None:
 		raise RuntimeError, "executable was not defined!"
-		executable=raw_input("Enter executable: ");
-	transfer_executable="True"
-	when_to_transfer_output="ON_EXIT"
-	requirements='(GLIDEIN_Site =!= "UCSD12") && (Arch=!="abc")'
-	if owner==None:
-		owner='Undefined'
-	notification='Never'
+		executable = raw_input("Enter executable: ");
+	transfer_executable = "True"
+	when_to_transfer_output = "ON_EXIT"
+	requirements = '(GLIDEIN_Site =!= "UCSD12") && (Arch =!= "abc")'
+	if owner == None:
+		owner = 'Undefined'
+	notification = 'Never'
 
 	# Create a testing loop for each concurrency
+	results = []
 	for i in range(0, len(concurrencyLevel), 1):
 
 		# request the glideins
 		# we want 10% more glideins than the concurrency level
-		totalGlideins=int(int(concurrencyLevel[i]) + .1 * int(concurrencyLevel[i]))
-#		gktid.request_glideins(totalGlideins)
+		totalGlideins = int(int(concurrencyLevel[i]) + .1 * int(concurrencyLevel[i]))
+		gktid.request_glideins(totalGlideins)
 		
 		# now we create the directories for each job and a submit file
 		workingDir = os.getcwd()
@@ -208,8 +209,8 @@ def run(config):
 			dir1 = workingDir + '/' + 'test' + concurrencyLevel[k] + '/'
 			os.makedirs(dir1)
 			logfile = dir1 + 'test' + concurrencyLevel[k] + '.log'
-			outputfile = dir1 + 'test' + concurrencyLevel[k] + '.out'
-			errorfile = dir1 + 'test' + concurrencyLevel[k] + '.err'
+			outputfile = 'test' + concurrencyLevel[k] + '.out'
+			errorfile = 'test' + concurrencyLevel[k] + '.err'
 			filename = dir1 + 'submit' + '.condor'
 			FILE=open(filename, "w")
 			FILE.write('universe=' + universe + '\n')
@@ -235,8 +236,8 @@ def run(config):
 
 		# need to figure out when we have all the glideins
 		# need to ask the glidekeeper object
-		finished="false"
-		while finished !="true":
+		finished = "false"
+		while finished != "true":
 			numberGlideins = gktid.get_running_glideins()
 			if numberGlideins = totalGlideins:
 				finished = "true"
@@ -244,19 +245,19 @@ def run(config):
 		# now we begin submission and monitoring
 		
 		# Need to figure this part out
- 		submission=condorManager.condorSubmitOne(filename)
+ 		submission = condorManager.condorSubmitOne(filename)
 		running = "true"
 		while running ! ="false":	
-			check1=condorMonitor.CondorQ()
+			check1 = condorMonitor.CondorQ()
 			# Not sure if this is the correct constraint to put on the monitor
 			if check1 == None:
 				running = "false"
 
 		# Need to check log files for when first
 		# job submitted  and last job finished
-		hours=[]
-		minutes=[]
-		seconds=[]
+		hours = []
+		minutes = []
+		seconds = []
 		logCheck = open(logfile, 'r')
 		try:
 			lines1 = logCheck.readlines()
@@ -266,11 +267,11 @@ def run(config):
 			line = line.strip()
 			if line[0:1] in ('(','.','U','R','J','C','G'):
 				continue # ignore unwanted text lines
-		        arr1=line.split(') ',1)
+		        arr1 = line.split(') ',1)
 		        if len(arr1) < 2:
             			    continue
-        		arr2=arr1[1].split(' ',2)
-        		time=arr2[1].split(':',2)
+        		arr2 = arr1[1].split(' ',2)
+        		time = arr2[1].split(':',2)
        			hours.append(int(time[0]))
         		minutes.append(int(time[1]))
         		seconds.append(int(time[2]))
@@ -278,9 +279,9 @@ def run(config):
 		diffMinutes = (minutes[len(minutes)-1] - minutes[0]) * 60
 		diffSeconds = seconds[len(seconds)-1] - seconds[0]
 		totalTime = diffHours + diffMinutes + diffSeconds
-
+		final = [totalTime, concurrencyLevel[k]]
+		results.append(final)
 	
-
 		# Cleanup all the directories and files made
 		shutil.rmtree(dir1)	
 
