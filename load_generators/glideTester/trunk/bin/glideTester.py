@@ -13,8 +13,11 @@
 import random
 import shutil
 import sys,os,os.path
+
+# Need these modules
 import condorMonitor
 import condorManager
+
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
@@ -199,7 +202,8 @@ def run(config):
 
 		# request the glideins
 		# we want 10% more glideins than the concurrency level
-		totalGlideins = int(int(concurrencyLevel[i]) + .1 * int(concurrencyLevel[i]))
+		requestedGlideins = int(concurrencyLevel[i])
+		totalGlideins = int(requestedGlideins + .1 * requestedGlideins))
 		gktid.request_glideins(totalGlideins)
 		
 		# now we create the directories for each job and a submit file
@@ -211,7 +215,7 @@ def run(config):
 			logfile = dir1 + 'test' + concurrencyLevel[k] + '.log'
 			outputfile = 'test' + concurrencyLevel[k] + '.out'
 			errorfile = 'test' + concurrencyLevel[k] + '.err'
-			filename = dir1 + 'submit' + '.condor'
+			filename = dir1 + 'submit.condor'
 			FILE=open(filename, "w")
 			FILE.write('universe=' + universe + '\n')
 			FILE.write('executable=' + executable + '\n')
@@ -234,21 +238,22 @@ def run(config):
 				os.makedirs(dir2)
 			FILE.close()
 
-		# need to figure out when we have all the glideins
-		# need to ask the glidekeeper object
+		# Need to figure out when we have all the glideins
+		# Ask the glidekeeper object
 		finished = "false"
 		while finished != "true":
 			numberGlideins = gktid.get_running_glideins()
-			if numberGlideins = totalGlideins:
+			if numberGlideins = requestedGlideins:
 				finished = "true"
 
-		# now we begin submission and monitoring
+		# Now we begin submission and monitoring
 		
-		# Need to figure this part out
+		## Need to figure this part out
  		submission = condorManager.condorSubmitOne(filename)
 		running = "true"
-		while running ! ="false":	
+		while running != "false":	
 			check1 = condorMonitor.CondorQ()
+		
 			# Not sure if this is the correct constraint to put on the monitor
 			if check1 == None:
 				running = "false"
@@ -279,11 +284,13 @@ def run(config):
 		diffMinutes = (minutes[len(minutes)-1] - minutes[0]) * 60
 		diffSeconds = seconds[len(seconds)-1] - seconds[0]
 		totalTime = diffHours + diffMinutes + diffSeconds
-		final = [totalTime, concurrencyLevel[k]]
+		final = [totalTime, concurrencyLevel[i]]
 		results.append(final)
 	
 		# Cleanup all the directories and files made
 		shutil.rmtree(dir1)	
+
+	# Write results to a data file for plotting
 
 #        pass
     finally:
