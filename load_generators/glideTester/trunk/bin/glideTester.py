@@ -139,7 +139,7 @@ class ArgsParser:
 
 def run(config):
     import glideKeeper
-    gktid=glideKeeper.glideKeeperThread(config.webUrl,self.descriptName,config.descriptSignature,
+    gktid=glideKeeper.GlideKeeperThread(config.webUrl,self.descriptName,config.descriptSignature,
                                         config.runId,
                                         config.gfactoryClassadID,
                                         [config.gfactoryNode],config.gFactoryConstraint,
