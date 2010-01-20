@@ -21,7 +21,7 @@ import condorMonitor
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
                  web_url,descript_fname,descript_signature,
-                 glideinkeeper_id,classad_id,
+                 glidekeeper_id,classad_id,
                  factory_pools,factory_constraint,
                  proxy_fname):
         threading.Thread.__init__(self)
