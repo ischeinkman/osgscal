@@ -188,17 +188,17 @@ class GlideKeeperThread(threading.Thread):
                            key_obj,glidein_params_to_encrypt=None)
 
         
-    try:
-        advertizer.do_advertize()
-        self.last_error=None
-    except glideinFrontendInterface.MultiExeError, e:
-        self.last_error="Advertizing failed for %i requests: %s"%(len(e.arr),e)
-    except RuntimeError, e:
-        self.last_error="Advertizing failed: %s"%e
-    except:
-        tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
+        try:
+            advertizer.do_advertize()
+            self.last_error=None
+        except glideinFrontendInterface.MultiExeError, e:
+            self.last_error="Advertizing failed for %i requests: %s"%(len(e.arr),e)
+        except RuntimeError, e:
+            self.last_error="Advertizing failed: %s"%e
+        except:
+            tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
                                         sys.exc_info()[2])
-        self.last_error="Advertizing failed: %s"%string.join(tb,'')
+            self.last_error="Advertizing failed: %s"%string.join(tb,'')
 
         
 
