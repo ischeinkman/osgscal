@@ -11,7 +11,7 @@
 
 import threading
 import time, string
-import traceback
+import sys,traceback
 
 # these ones come from the glideinWMS package
 # they are located in the lib and frontend subdirectories
