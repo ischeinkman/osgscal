@@ -90,7 +90,7 @@ class GlideKeeperThread(threading.Thread):
 
             self.reload_proxy()
             if (self.needed_glideins>0) and (not self.shutdown): # on shutdown clean up, don't ask for more
-                self.request_glideins()
+                self.go_request_glideins()
                 self.need_cleanup = True
             else:
                 if self.need_cleanup:
@@ -127,7 +127,7 @@ class GlideKeeperThread(threading.Thread):
                 self.last_error="Deadvertizing failed: %s"%string.join(tb,'')
         self.need_cleanup = False
     
-    def request_glideins(self):
+    def go_request_glideins(self):
         # query job collector
         pool_status=condorMonitor.CondorStatus()
         pool_status.load(None,[])
