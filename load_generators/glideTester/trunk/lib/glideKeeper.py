@@ -24,7 +24,7 @@ class GlideKeeperThread(threading.Thread):
                  glideinkeeper_id,classad_id,
                  factory_pools,factory_constraint,
                  proxy_fname):
-        threading.Thread(self)
+        threading.Thread.__init__(self)
         # consts
         self.signature_type = "sha1"
         self.max_request=100
