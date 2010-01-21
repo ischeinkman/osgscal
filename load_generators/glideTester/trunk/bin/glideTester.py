@@ -211,7 +211,7 @@ def run(config):
             # request the glideins
             # we want 10% more glideins than the concurrency level
             requestedGlideins = int(concurrencyLevel[i])
-            totalGlideins = int(requestedGlideins + .1 * requestedGlideins))
+            totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
             gktid.request_glideins(totalGlideins)
 		
             # now we create the directories for each job and a submit file
@@ -225,20 +225,20 @@ def run(config):
                 errorfile = 'test' + concurrencyLevel[k] + '.err'
                 filename = dir1 + 'submit.condor'
                 condorSubFile=open(filename, "w")
-                condorSubFile.write('universe=' + universe + '\n')
-                condorSubFile.write('executable=' + executable + '\n')
-                condorSubFile.write('transfer_executable=' + transfer_executable + '\n')
-                condorSubFile.write('when_to_transfer_output=' + when_to_transfer_output + '\n')
-                condorSubFile.write('Requirements=' + requirements + '\n')
-                condorSubFile.write('+Owner=' + owner + '\n')
-                condorSubFile.write('log=' + logfile + '\n')
-                condorSubFile.write('output=' +  outputfile + '\n')
-                condorSubFile.write('error=' + errorfile + '\n')
-                condorSubFile.write('notification=' + notification + '\n\n')
+                condorSubFile.write('universe = ' + universe + '\n')
+                condorSubFile.write('executable = ' + executable + '\n')
+                condorSubFile.write('transfer_executable = ' + transfer_executable + '\n')
+                condorSubFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
+                condorSubFile.write('Requirements = ' + requirements + '\n')
+                condorSubFile.write('+Owner = ' + owner + '\n')
+                condorSubFile.write('log = ' + logfile + '\n')
+                condorSubFile.write('output = ' +  outputfile + '\n')
+                condorSubFile.write('error = ' + errorfile + '\n')
+                condorSubFile.write('notification = ' + notification + '\n\n')
                 if arguments != None:
-                    condorSubFile.write('Arguments =' + arguments + '\n')
+                    condorSubFile.write('Arguments = ' + arguments + '\n')
                 for j in range(0, int(concurrencyLevel[k]), 1):
-                    condorSubFile.write('Initialdir = ' + 'job' + str(loop) + '\n')
+                    condorSubFile.write('Initialdir = job' + str(loop) + '\n')
                     condorSubFile.write('Queue\n\n')
                     loop = loop + 1
                 for i in range(0, int(concurrencyLevel[k]), 1):
