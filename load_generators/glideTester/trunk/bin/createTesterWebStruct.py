@@ -15,12 +15,13 @@ sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
 class ArgsParser:
     def __init__(self,argv):
-        if len(argv)<5:
-            raise RuntimeError, "Need 4 parameters: glideinWMSDir workDir webURL webStageDir"
+        if len(argv)<6:
+            raise RuntimeError, "Need 5 parameters: glideinWMSDir workDir webURL webStageDir gridmapFile"
         self.glideinWMSDir=argv[1]
         self.workDir=argv[2]
         self.webURL=argv[3]
         self.webStageDir=argv[4]
+        self.gridmapFile=argv[5]
 
 def run(config):
     sys.path.append(os.path.join(config.glideinWMSDir,"lib"))
@@ -28,7 +29,7 @@ def run(config):
     import cgkWDictFile
 
     dicts=cgkWDictFile.glideKeeperDicts(config.workDir,config.webStageDir)
-    dicts.populate(config.webURL)
+    dicts.populate(config.webURL,config.gridmapFile)
     dicts.create_dirs()
     dicts.save()
 
