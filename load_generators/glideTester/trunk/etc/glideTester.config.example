@@ -3,7 +3,7 @@
 #
 glideinWMSDir=/home/sfiligoi/glideinWMS
 configDir=/home/sfiligoi/web_work_dir
-#proxyFile=pathtomyproxy
+proxyFile=/home/sfiligoi/.globus/my.proxy
 
 ################
 # gfactory attrs

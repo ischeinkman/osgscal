@@ -119,13 +119,8 @@ class ArgsParser:
             raise RuntimeError, "glideinWMSDir was not defined!"
         if self.configDir==None:
             raise RuntimeError, "configDir was not defined!"
-        #if self.proxyFile==None:
-        #    if os.environ.has_key('X509_USER_PROXY'):
-        #        self.proxyFile=os.environ['X509_USER_PROXY']
-        #    else:
-        #        self.proxyFile='/tmp/x509us_u%i'%os.getuid()
-        #    if not os.path.exists(self.proxyFile):
-        #        raise RuntimeError, "proxyFile was not defined, and '%s' does not exist!"%self.proxyFile
+        if self.proxyFile==None:
+            raise RuntimeError, "proxyFile was not defined!"
         if self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
         if self.myClassadID==None:
