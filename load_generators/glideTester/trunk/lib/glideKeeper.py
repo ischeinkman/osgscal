@@ -67,7 +67,7 @@ class GlideKeeperThread(threading.Thread):
     # if you request 0, all the currenty running ones will be killed
     # in all other cases, it is just requesting for more, if appropriate
     def request_glideins(self,needed_glideins):
-        self.needed_glidein=needed_glideins
+        self.needed_glideins=needed_glideins
 
     # use this for monitoring
     def get_running_glideins(self):
