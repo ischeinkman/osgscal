@@ -75,6 +75,7 @@ class ArgsParser:
         self.glideinWMSDir=None
         self.configDir=None
         self.proxyFile=None
+        self.collectorNode=None
         self.gfactoryNode=None
         self.gfactoryConstraint=None
         self.gfactoryClassadID=None
@@ -102,6 +103,8 @@ class ArgsParser:
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
                 self.proxyFile=val
+            elif key=='collectorNode':
+                self.collectorNode=val
             elif key=='gfactoryNode':
                 self.gfactoryNode=val
             elif key=='gfactoryConstraint':
@@ -121,6 +124,8 @@ class ArgsParser:
             raise RuntimeError, "configDir was not defined!"
         if self.proxyFile==None:
             raise RuntimeError, "proxyFile was not defined!"
+        if self.collectorNode==None:
+            raise RuntimeError, "collectorNode was not defined!"
         if self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
         if self.myClassadID==None:
@@ -145,6 +150,7 @@ def run(config):
                                         config.runId,
                                         config.myClassadID,
                                         [(config.gfactoryNode,config.gfactoryClassadID)],config.gfactoryConstraint,
+                                        config.collectorNode,
                                         config.proxyFile)
     gktid.start()
     try:

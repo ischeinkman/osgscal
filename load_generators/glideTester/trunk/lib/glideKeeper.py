@@ -23,6 +23,7 @@ class GlideKeeperThread(threading.Thread):
                  web_url,descript_fname,descript_signature,
                  glidekeeper_id,classad_id,
                  factory_pools,factory_constraint,
+                 collector_node,
                  proxy_fname):
         threading.Thread.__init__(self)
         # consts
@@ -47,6 +48,9 @@ class GlideKeeperThread(threading.Thread):
 
         # string or None
         self.factory_constraint=factory_constraint
+
+        # string
+        self.collector_node = collector_node
 
         self.proxy_fname=proxy_fname
         self.reload_proxy() # provides proxy_data
@@ -194,6 +198,8 @@ class GlideKeeperThread(threading.Thread):
             glidein_el=glidein_dict[glideid]
             key_obj=key_builder.get_key_obj(self.classad_id,
                                             glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
+            glidein_params={'GLIDEIN_Collector':self.collector_node}
+            glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,
                            more_per_entry,self.needed_glideins*12/10,
