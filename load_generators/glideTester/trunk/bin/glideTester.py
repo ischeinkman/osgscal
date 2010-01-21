@@ -143,6 +143,8 @@ class ArgsParser:
 
 
 def run(config):
+    os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
+    os.environ['X509_USER_PROXY']=config.proxyFile
     import glideKeeper
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
                                         config.runId,
