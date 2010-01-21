@@ -10,5 +10,6 @@ configDir=/home/sfiligoi/web_work_dir
 #
 gfactoryNode=glidein-1.t2.ucsd.edu
 gfactoryConstraint=(FactoryType=?="sleeper")
-gfactoryClassadID=sfiligoi@glidein-1.t2.ucsd.edu
+gfactoryClassadID=gfactory@glidein-1.t2.ucsd.edu
+myClassadID=frontend@glidein-1.t2.ucsd.edu
 
