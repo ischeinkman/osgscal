@@ -141,12 +141,25 @@ class GlideKeeperThread(threading.Thread):
             factory_pool_node=factory_pool[0]
             factory_identity=factory_pool[1]
             try:
-                factory_glidein_dict=glideinFrontendInterface.findGlideins(factory_pool_node,self.signature_type,self.factory_constraint,self.proxy_data!=None,get_only_matching=True)
+                factory_glidein_dict=glideinFrontendInterface.findGlideins(factory_pool_node,factory_identity,self.signature_type,self.factory_constraint,self.proxy_data!=None,get_only_matching=True)
             except RuntimeError, e:
                 factory_glidein_dict={} # in case of error, treat as there is nothing there
 
             for glidename in factory_glidein_dict.keys():
-                glidein_dict[(factory_pool_node,glidename)]=factory_glidein_dict[glidename]
+                glidein_el=factory_glidein_dict[glidename]
+                if not glidein_el['attrs'].has_key('PubKeyType'): # no pub key at all, skip
+                    continue
+                elif glidein_el['attrs']['PubKeyType']=='RSA': # only trust RSA for now
+                    try:
+                        # augment
+                        glidein_el['attrs']['PubKeyObj']=glideinFrontendInterface.pubCrypto.PubRSAKey(str(string.replace(glidein_el['attrs']['PubKeyValue'],'\\n','\n')))
+                        # and add
+                        glidein_dict[(factory_pool_node,glidename)]=glidein_el
+                    except:
+                        continue # skip
+                else: # invalid key type, skip
+                    continue
+
         nr_entries=len(glidein_dict.keys())
 
         if running_glideins>=self.needed_glideins:
@@ -179,7 +192,7 @@ class GlideKeeperThread(threading.Thread):
         for glideid in glidein_dict.keys():
             factory_pool_node,glidename=glideid
             glidein_el=glidein_dict[glideid]
-            key_obj=key_builder.get_key_obj(self.classad_identity,
+            key_obj=key_builder.get_key_obj(self.classad_id,
                                             glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
             advertizer.add(factory_pool_node,
                            glidename,glidename,
