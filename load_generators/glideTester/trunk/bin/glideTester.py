@@ -78,6 +78,7 @@ class ArgsParser:
         self.gfactoryNode=None
         self.gfactoryConstraint=None
         self.gfactoryClassadID=None
+        self.myClassadID=None
 
         # read the values
         for line in lines:
@@ -107,6 +108,8 @@ class ArgsParser:
                 self.gfactoryConstraint=val
             elif key=='gfactoryClassadID':
                 self.gfactoryClassadID=val
+            elif key=='myClassadID':
+                self.myClassadID=val
             else:
                 raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
 
@@ -125,6 +128,8 @@ class ArgsParser:
         #        raise RuntimeError, "proxyFile was not defined, and '%s' does not exist!"%self.proxyFile
         if self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
+        if self.myClassadID==None:
+            raise RuntimeError, "myClassadID was not defined!"
         # it would be wise to verify the signature here, but will not do just now
         # to be implemented
         
@@ -139,10 +144,10 @@ class ArgsParser:
 
 def run(config):
     import glideKeeper
-    gktid=glideKeeper.GlideKeeperThread(config.webURL,self.descriptName,config.descriptSignature,
+    gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
                                         config.runId,
-                                        config.gfactoryClassadID,
-                                        [config.gfactoryNode],config.gfactoryConstraint,
+                                        config.myClassadID,
+                                        [(config.gfactoryNode,config.gfactoryClassadID)],config.gfactoryConstraint,
                                         config.proxyFile)
     gktid.start()
     try:
