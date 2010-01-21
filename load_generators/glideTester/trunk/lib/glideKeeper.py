@@ -86,7 +86,7 @@ class GlideKeeperThread(threading.Thread):
                 first=False
             else:
                 # do not sleep the first round
-                time.sleep(120)
+                time.sleep(20)
 
             self.reload_proxy()
             if (self.needed_glideins>0) and (not self.shutdown): # on shutdown clean up, don't ask for more
