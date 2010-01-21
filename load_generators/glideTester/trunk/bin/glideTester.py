@@ -102,9 +102,9 @@ class ArgsParser:
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
                 self.proxyFile=val
             elif key=='gfactoryNode':
-                self.gFactoryNode=val
+                self.gfactoryNode=val
             elif key=='gfactoryConstraint':
-                self.gFactoryConstraint=val
+                self.gfactoryConstraint=val
             elif key=='gfactoryClassadID':
                 self.gfactoryClassadID=val
             else:
@@ -142,7 +142,7 @@ def run(config):
     gktid=glideKeeper.GlideKeeperThread(config.webURL,self.descriptName,config.descriptSignature,
                                         config.runId,
                                         config.gfactoryClassadID,
-                                        [config.gfactoryNode],config.gFactoryConstraint,
+                                        [config.gfactoryNode],config.gfactoryConstraint,
                                         config.proxyFile)
     gktid.start()
     try:
