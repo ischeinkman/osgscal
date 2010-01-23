@@ -13,13 +13,19 @@
 import random
 import shutil
 import sys,os,os.path
-
-# Need these modules
-import condorMonitor
-import condorManager
+import time
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
+
+glideinWMSDir='/home/igortest/glideinWMS'
+sys.path.append(os.path.join(glideinWMSDir,"lib"))
+sys.path.append(os.path.join(glideinWMSDir,"frontend"))
+sys.path.append(os.path.join(glideinWMSDir,"creation/lib"))
+
+import condorMonitor
+import condorManager
+import glideKeeper
 
 ############################
 # Configuration class
@@ -154,8 +160,6 @@ def run(config):
                                         config.proxyFile)
     gktid.start()
     try:
-        # most of the code goes here
-	
         # first load the file, so we check it is readable
         fd = open('parameters.cfg', 'r')
         try:
@@ -205,100 +209,68 @@ def run(config):
         notification = 'Never'
 
         # Create a testing loop for each concurrency
-        results = []
-        for i in range(0, len(concurrencyLevel), 1):
+        for k in range(0, len(concurrencyLevel), 1):
 
             # request the glideins
             # we want 10% more glideins than the concurrency level
-            requestedGlideins = int(concurrencyLevel[i])
+            requestedGlideins = int(concurrencyLevel[k])
             totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
             gktid.request_glideins(totalGlideins)
 		
             # now we create the directories for each job and a submit file
             workingDir = os.getcwd()
-            for k in range(0, len(concurrencyLevel), 1):
-                loop = 0
-                dir1 = workingDir + '/test' + concurrencyLevel[k] + '/'
-                os.makedirs(dir1)
-                logfile = dir1 + 'test' + concurrencyLevel[k] + '.log'
-                outputfile = 'test' + concurrencyLevel[k] + '.out'
-                errorfile = 'test' + concurrencyLevel[k] + '.err'
-                filename = dir1 + 'submit.condor'
-                condorSubFile=open(filename, "w")
-                condorSubFile.write('universe = ' + universe + '\n')
-                condorSubFile.write('executable = ' + executable + '\n')
-                condorSubFile.write('transfer_executable = ' + transfer_executable + '\n')
-                condorSubFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
-                condorSubFile.write('Requirements = ' + requirements + '\n')
-                condorSubFile.write('+Owner = ' + owner + '\n')
-                condorSubFile.write('log = ' + logfile + '\n')
-                condorSubFile.write('output = ' +  outputfile + '\n')
-                condorSubFile.write('error = ' + errorfile + '\n')
-                condorSubFile.write('notification = ' + notification + '\n\n')
-                if arguments != None:
-                    condorSubFile.write('Arguments = ' + arguments + '\n')
-                for j in range(0, int(concurrencyLevel[k]), 1):
-                    condorSubFile.write('Initialdir = job' + str(loop) + '\n')
-                    condorSubFile.write('Queue\n\n')
-                    loop = loop + 1
-                for i in range(0, int(concurrencyLevel[k]), 1):
-                    dir2 = dir1 + 'job' + str(i) + '/'
-                    os.makedirs(dir2)
-                condorSubFile.close()
+            loop = 0
+            dir1 = workingDir + '/test' + concurrencyLevel[k] + '/'
+            os.makedirs(dir1)
+            logfile = workingDir + '/test' + concurrencyLevel[k] + '.log'
+            outputfile = 'test' + concurrencyLevel[k] + '.out'
+            errorfile = 'test' + concurrencyLevel[k] + '.err'
+            filename = dir1 + 'submit.condor'
+            condorSubmitFile = open(filename, "w")
+            condorSubmitFile.write('universe = ' + universe + '\n')
+            condorSubmitFile.write('executable = ' + executable + '\n')
+            condorSubmitFile.write('transfer_executable = ' + transfer_executable + '\n')
+            condorSubmitFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
+            condorSubmitFile.write('Requirements = ' + requirements + '\n')
+            condorSubmitFile.write('+Owner = ' + owner + '\n')
+            condorSubmitFile.write('log = ' + logfile + '\n')
+            condorSubmitFile.write('output = ' +  outputfile + '\n')
+            condorSubmitFile.write('error = ' + errorfile + '\n')
+            condorSubmitFile.write('notification = ' + notification + '\n\n')
+            condorSubmitFile.write('+IsSleep = 1\n\n')
+            if arguments != None:
+                condorSubmitFile.write('Arguments = ' + arguments + '\n')
+            for j in range(0, int(concurrencyLevel[k]), 1):
+                condorSubmitFile.write('Initialdir = job' + str(loop) + '\n')
+                condorSubmitFile.write('Queue\n\n')
+                loop = loop + 1
+            for i in range(0, int(concurrencyLevel[k]), 1):
+                dir2 = dir1 + 'job' + str(i) + '/'
+                os.makedirs(dir2)
+            condorSubmitFile.close()
 
-            # Need to figure out when we have all the glideins
-            # Ask the glidekeeper object
-            finished = "false"
-            while finished != "true":
-                numberGlideins = gktid.get_running_glideins()
-                if numberGlideins = requestedGlideins:
-                    finished = "true"
+        # Need to figure out when we have all the glideins
+        # Ask the glidekeeper object
+        finished = "false"
+        while finished != "true":
+            numberGlideins = gktid.get_running_glideins()
+            print numberGlideins
+            time.sleep(5)
+            if numberGlideins >= requestedGlideins:
+                finished = "true"
 
-            # Now we begin submission and monitoring
-    		
-            ## Need to figure this part out
-            submission = condorManager.condorSubmitOne(filename)
-            running = "true"
-            while running != "false":	
-                check1 = condorMonitor.CondorQ()
-		
-                # Not sure if this is the correct constraint to put on the monitor
-                if check1 == None:
-                    running = "false"
+        # Now we begin submission and monitoring
+        submission = condorManager.condorSubmitOne(filename)
+        running = "true"
+        while running != "false":	
+            check1 = condorMonitor.CondorQ()
+            check1.load('Status==3')
+            data = check1.fetch()
+            if len(data.keys()) == 0:
+                running = "false"
 
-            # Need to check log files for when first
-            # job submitted  and last job finished
-            hours = []
-            minutes = []
-            seconds = []
-            logCheck = open(logfile, 'r')
-            try:
-                lines1 = logCheck.readlines()
-            finally:
-                logCheck.close()
-            for line in lines1:
-                line = line.strip()
-                if line[0:1] in ('(','.','U','R','J','C','G'):
-                    continue # ignore unwanted text lines
-                arr1 = line.split(') ',1)
-                if len(arr1) < 2:
-                    continue
-                arr2 = arr1[1].split(' ',2)
-                time = arr2[1].split(':',2)
-                hours.append(int(time[0]))
-                minutes.append(int(time[1]))
-                seconds.append(int(time[2]))
-            diffHours = (hours[len(hours)-1] - hours[0]) * 3600
-            diffMinutes = (minutes[len(minutes)-1] - minutes[0]) * 60
-            diffSeconds = seconds[len(seconds)-1] - seconds[0]
-            totalTime = diffHours + diffMinutes + diffSeconds
-            final = [totalTime, concurrencyLevel[i]]
-            results.append(final)
-	
-            # Cleanup all the directories and files made
-            shutil.rmtree(dir1)	
-
-        # Write results to a data file for plotting
+        # Cleanup all the directories and files made
+        shutil.rmtree(dir1)	
 
     finally:
         gktid.soft_kill()
