@@ -52,12 +52,20 @@ sub getUpdateTime
 
 sub GetProcInfo
 {
-  my ($DBprocessname, $ProcRegExp, $ps, $lsof) = @_;
+  my ($DBprocessname, $ProcRegExp, $ps, $lsof, $myself) = @_;
 
   my @INFOPROCS= () ;
 
   #call ps and collect output
-  @INFOPROCS=`$ps -eo pid,user,rtprio,nice,vsize,rss,share,s,pcpu,pmem,cputime,ppid,command`;   
+  if ($myself eq 'false') 
+  {
+    @INFOPROCS=`$ps -eo pid,user,rtprio,nice,vsize,rss,share,s,pcpu,pmem,cputime,ppid,command`;
+  }
+  else
+  {
+    chomp(my $name = `whoami`);
+    @INFOPROCS=`$ps -u $name -o pid,user,rtprio,nice,vsize,rss,share,s,pcpu,pmem,cputime,ppid,command`;
+  }
   # ps -eo pid,user,rtprio,nice,vsize,rss,share,s,pcpu,pmem,cputime,ppid,command |head -1
   #  PID USER     RTPRIO  NI    VSZ   RSS - S %CPU %MEM     TIME  PPID COMMAND
   #Let's get the command we are interested in (the 12th column)
@@ -242,6 +250,7 @@ $ConfigurationData{'out_file'}{'filter'}='.+';
 $ConfigurationData{'ExecutableFile_ps'}{'filter'}='.+';
 $ConfigurationData{'ExecutableFile_lsof'}{'filter'}='.+';
 $ConfigurationData{'ExecutableFile_top'}{'filter'}='.+';
+$ConfigurationData{'myself'}{'filter'}='true$|^false';
 
 #Let's Read the configuration information
 open(my $Conf, "<", "$ConfigurationFile") or die "Can't read file $ConfigurationFile \n";
@@ -264,10 +273,8 @@ while (<$Conf>)
     {
       my $filter=$ConfigurationData{$variable}{'filter'};
 
-      if ( $value=~/^$filter$/ )
-      {
-        $ConfigurationData{$variable}{'value'}="$value";     
-      }     
+      die "bad value in osgmonitoring.conf: $value\n" if $value !~ /^$filter$/;
+      $ConfigurationData{$variable}{'value'}="$value";     
     }
   }
 }
@@ -299,6 +306,11 @@ unless (defined ($ConfigurationData{'procs_conf'}{'value'}))
 unless (defined ($ConfigurationData{'out_file'}{'value'}))
 {
   $ConfigurationData{'out_file'}{'value'} = "$dirname/../osgmonitoring.xml";
+}
+
+unless (defined ($ConfigurationData{'myself'}{'value'}))
+{
+  $ConfigurationData{'myself'}{'value'} = 'false';
 }
 
 #Check All Our Variables Were Read
@@ -371,8 +383,10 @@ eval
     }
 
     # get process data
-    push(@processes, GetProcInfo($line[0], $line[1], $ConfigurationData{'ExecutableFile_ps'}{'value'}, 
-      $ConfigurationData{'ExecutableFile_lsof'}{'value'}));
+    push(@processes, GetProcInfo($line[0], $line[1], 
+        $ConfigurationData{'ExecutableFile_ps'}{'value'}, 
+          $ConfigurationData{'ExecutableFile_lsof'}{'value'},
+            $ConfigurationData{'myself'}{'value'}));
   }
 };
 if ($@)
