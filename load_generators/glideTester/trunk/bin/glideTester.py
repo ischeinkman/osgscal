@@ -169,9 +169,11 @@ def run(config):
 
         # reset the values
         executable = None
+        inputFile = None
+        outputFile = None
+        environment = None
         arguments = None
         concurrency = None
-        owner = None
 
         # read the values
         for line in lines:
@@ -187,8 +189,12 @@ def run(config):
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
                 executable = val
-            elif key == 'owner':
-                owner=val
+            elif key == 'transfer_input_files':
+                inputFile = val
+            elif key == 'transfer_output_files':
+                outputFile = val
+            elif key == 'environment':
+                environment = val
             elif key == 'arguments':
                 arguments = val
             elif key == 'concurrency':
@@ -204,8 +210,7 @@ def run(config):
         transfer_executable = "True"
         when_to_transfer_output = "ON_EXIT"
         requirements = '(GLIDEIN_Site =!= "UCSD12") && (Arch =!= "abc")'
-        if owner == None:
-            owner = 'Undefined'
+        owner = 'Undefined'
         notification = 'Never'
 
         # Create a testing loop for each concurrency
@@ -225,23 +230,30 @@ def run(config):
             logfile = workingDir + '/test' + concurrencyLevel[k] + '.log'
             outputfile = 'test' + concurrencyLevel[k] + '.out'
             errorfile = 'test' + concurrencyLevel[k] + '.err'
-            filename = dir1 + 'submit.condor'
+            filename = 'submit.condor'
             condorSubmitFile = open(filename, "w")
             condorSubmitFile.write('universe = ' + universe + '\n')
             condorSubmitFile.write('executable = ' + executable + '\n')
             condorSubmitFile.write('transfer_executable = ' + transfer_executable + '\n')
+            if inputFile != None:
+                condorSubmitFile.write('transfer_input_files = ' + inputFile + '\n')
+            if outputFile != None:
+                condorSubmitFile.write('transfer_output_files = ' + outputFile + '\n')
+            if environment != None:
+                condorSubmitFile.write('environment = ' + environment + '\n')
             condorSubmitFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
             condorSubmitFile.write('Requirements = ' + requirements + '\n')
             condorSubmitFile.write('+Owner = ' + owner + '\n')
             condorSubmitFile.write('log = ' + logfile + '\n')
             condorSubmitFile.write('output = ' +  outputfile + '\n')
             condorSubmitFile.write('error = ' + errorfile + '\n')
-            condorSubmitFile.write('notification = ' + notification + '\n\n')
-            condorSubmitFile.write('+IsSleep = 1\n\n')
+            condorSubmitFile.write('notification = ' + notification + '\n')
+            condorSubmitFile.write('+IsSleep = 1\n')
+            condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
             if arguments != None:
                 condorSubmitFile.write('Arguments = ' + arguments + '\n')
             for j in range(0, int(concurrencyLevel[k]), 1):
-                condorSubmitFile.write('Initialdir = job' + str(loop) + '\n')
+                condorSubmitFile.write('Initialdir = ' dir1 + 'job' + str(loop) + '\n')
                 condorSubmitFile.write('Queue\n\n')
                 loop = loop + 1
             for i in range(0, int(concurrencyLevel[k]), 1):
