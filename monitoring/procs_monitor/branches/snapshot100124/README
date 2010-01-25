@@ -1,0 +1,27 @@
+Process Monitor
+---------------
+
+Dependencies
+------------
+python =2.4
+perl 5.8
+python-elementtree 1.2.6
+
+Needed for optional plugins:
+rrdtool 1.3.8
+rrdtool-python 1.3.8
+ganglia 3.1.2
+zabbix 1.6.1
+
+Installation
+------------
+run ./install.py and follow the instructions
+
+Installs in specified directory during installation.  This will be known as
+$PROC_MON in this document.  The collector and plugins are all called from inside
+a wrapper script $PROC_MON/bin/osgmon_cron.sh.  The installer adds the following
+line to your crontab:
+
+*/5 * * * * $PROC_MON/bin/osgmon_cron.sh
+
+
