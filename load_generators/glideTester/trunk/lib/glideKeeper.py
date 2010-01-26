@@ -133,11 +133,15 @@ class GlideKeeperThread(threading.Thread):
     
     def go_request_glideins(self):
         # query job collector
-        pool_status=condorMonitor.CondorStatus()
-        pool_status.load('IS_MONITOR_VM=!=True',[('State','s')])
-        running_glideins=len(pool_status.fetchStored())
-        del pool_status
-        self.running_glideins=running_glideins
+        try:
+          pool_status=condorMonitor.CondorStatus()
+          pool_status.load('IS_MONITOR_VM=!=True',[('State','s')])
+          running_glideins=len(pool_status.fetchStored())
+          del pool_status
+          self.running_glideins=running_glideins
+        except:
+          self.last_error="condor_status failed"
+          return
 
         # query WMS collector
         glidein_dict={}
