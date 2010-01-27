@@ -173,8 +173,8 @@ class GlideKeeperThread(threading.Thread):
         if running_glideins>=self.needed_glideins:
             additional_glideins=0
         else:
-            # ask for a third since it takes a few cycles to stabilize
-            additional_glideins=(self.needed_glideins-running_glideins)/3+1
+            # ask for half since it takes a few cycles to stabilize
+            additional_glideins=(self.needed_glideins-running_glideins)/2+1
             if additional_glideins>self.max_request:
                 additional_glideins=self.max_request
 
@@ -206,7 +206,7 @@ class GlideKeeperThread(threading.Thread):
             glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,
-                           more_per_entry,self.needed_glideins*12/10,
+                           more_per_entry,self.needed_glideins*12/10+1,
                            glidein_params,glidein_monitors,
                            key_obj,glidein_params_to_encrypt=None)
 
