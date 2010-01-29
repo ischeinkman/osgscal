@@ -166,7 +166,7 @@ def run(config):
     workingDir = os.getcwd()
 
     os.makedirs(workingDir + '/' + startTime)
-    main_log_fname=workingDir + '/' + startTime + '/CTtest.log'
+    main_log_fname=workingDir + '/' + startTime + '/glideTester.log'
     main_log=open(main_log_fname,'w')
 
     try:
@@ -219,7 +219,6 @@ def run(config):
         universe = 'vanilla'
         if executable == None:
             raise RuntimeError, "executable was not defined!"
-            executable = raw_input("Enter executable: ");
         transfer_executable = "True"
         when_to_transfer_output = "ON_EXIT"
         requirements = '(GLIDEIN_Site =!= "UCSD12") && (Arch =!= "abc")'
@@ -313,6 +312,7 @@ def run(config):
                         running = "false"
                         main_log.write("%s %s\n"%(ctime(), "no more running jobs"))
                     else:
+                        sleep(10)
 
         main_log.write("%s %s\n"%(ctime(), "Done"))
 
