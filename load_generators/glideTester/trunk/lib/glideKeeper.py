@@ -60,8 +60,6 @@ class GlideKeeperThread(threading.Thread):
         # keep it simple, start with 0, requests will come later
         self.needed_glideins=0
 
-        self.last_glideins_contacted={}
-
         self.need_cleanup = False # if never requested more than 0, then no need to do cleanup
 
         self.running_glideins=0
@@ -69,9 +67,6 @@ class GlideKeeperThread(threading.Thread):
 
         ##############################
         self.shutdown=False
-
-        # defaults that a user can change, if he wants
-        self.kill_glideins_on_exit=True
 
     # if you request 0, all the currenty running ones will be killed
     # in all other cases, it is just requesting for more, if appropriate
@@ -119,49 +114,11 @@ class GlideKeeperThread(threading.Thread):
             proxy_fd.close()
         return
 
-    def advertize_need(self,glidein_dict,
-                       more_per_entry,needed_glideins):
-        if self.proxy_data==None:
-            proxy_arr=None
-        else:
-            proxy_arr=[('0',self.proxy_data)]
-        descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
-                                                                      self.web_url,self.descript_fname,
-                                                                      self.signature_type,self.descript_signature,
-                                                                      proxy_arr)
-        # reuse between loops might be a good idea, but this will work for now
-        key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
-
-        advertizer=glideinFrontendInterface.MultiAdvertizeWork(descript_obj)
-        for glideid in glidein_dict.keys():
-            factory_pool_node,glidename=glideid
-            glidein_el=glidein_dict[glideid]
-            key_obj=key_builder.get_key_obj(self.classad_id,
-                                            glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
-            glidein_params={'GLIDEIN_Collector':self.collector_node}
-            glidein_monitors={}
-            advertizer.add(factory_pool_node,
-                           glidename,glidename,
-                           more_per_entry,needed_glideins,
-                           glidein_params,glidein_monitors,
-                           key_obj,glidein_params_to_encrypt=None)
-
-        
-        try:
-            advertizer.do_advertize()
-            self.last_error=None
-        except glideinFrontendInterface.MultiExeError, e:
-            self.last_error="Advertizing failed for %i requests: %s"%(len(e.arr),e)
-        except RuntimeError, e:
-            self.last_error="Advertizing failed: %s"%e
-        except:
-            tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
-                                        sys.exc_info()[2])
-            self.last_error="Advertizing failed: %s"%string.join(tb,'')
-
-        self.last_glideins_contacted=copy.deepcopy(glidein_dict)
-
-    def deadvertize_myself(self):
+    def cleanup_glideins(self):
+        #to be implemented
+        # for now, just try to deadvertize and claim you are done
+        # in the future, we need to do better than this (i.e. actually kill the gldieins)
+        self.last_error=None
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
             try:
@@ -172,19 +129,6 @@ class GlideKeeperThread(threading.Thread):
                 tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
                                                 sys.exc_info()[2])
                 self.last_error="Deadvertizing failed: %s"%string.join(tb,'')
-
-    def cleanup_glideins(self):
-        #to be implemented
-        # for now, just try to deadvertize and claim you are done
-        # in the future, we need to do better than this (i.e. actually kill the gldieins)
-        self.last_error=None
-
-        # tell the factories I don't wan't any more glideins
-        self.advertize_need(self.last_glideins_contacted,0,0)
-
-        # completely de-register from the factories
-        self.deadvertize_myself()
-
         self.need_cleanup = False
     
     def go_request_glideins(self):
@@ -229,8 +173,8 @@ class GlideKeeperThread(threading.Thread):
         if running_glideins>=self.needed_glideins:
             additional_glideins=0
         else:
-            # ask for half since it takes a few cycles to stabilize
-            additional_glideins=(self.needed_glideins-running_glideins)/2+1
+            # ask for a third since it takes a few cycles to stabilize
+            additional_glideins=(self.needed_glideins-running_glideins)/3+1
             if additional_glideins>self.max_request:
                 additional_glideins=self.max_request
 
@@ -240,9 +184,44 @@ class GlideKeeperThread(threading.Thread):
             # if we have just 2 or less, ask each the maximum
             more_per_entry=additional_glideins
         
-        # here we have all the data to request glideins
-        self.advertize_need(glidein_dict,
-                            more_per_entry,self.needed_glideins*12/10+1)
+        # here we have all the data needed to build a GroupAdvertizeType object
+        if self.proxy_data==None:
+            proxy_arr=None
+        else:
+            proxy_arr=[('0',self.proxy_data)]
+        descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
+                                                                      self.web_url,self.descript_fname,
+                                                                      self.signature_type,self.descript_signature,
+                                                                      proxy_arr)
+        # reuse between loops might be a good idea, but this will work for now
+        key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
+
+        advertizer=glideinFrontendInterface.MultiAdvertizeWork(descript_obj)
+        for glideid in glidein_dict.keys():
+            factory_pool_node,glidename=glideid
+            glidein_el=glidein_dict[glideid]
+            key_obj=key_builder.get_key_obj(self.classad_id,
+                                            glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
+            glidein_params={'GLIDEIN_Collector':self.collector_node}
+            glidein_monitors={}
+            advertizer.add(factory_pool_node,
+                           glidename,glidename,
+                           more_per_entry,self.needed_glideins*12/10,
+                           glidein_params,glidein_monitors,
+                           key_obj,glidein_params_to_encrypt=None)
+
+        
+        try:
+            advertizer.do_advertize()
+            self.last_error=None
+        except glideinFrontendInterface.MultiExeError, e:
+            self.last_error="Advertizing failed for %i requests: %s"%(len(e.arr),e)
+        except RuntimeError, e:
+            self.last_error="Advertizing failed: %s"%e
+        except:
+            tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
+                                        sys.exc_info()[2])
+            self.last_error="Advertizing failed: %s"%string.join(tb,'')
 
         
 
