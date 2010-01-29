@@ -13,7 +13,10 @@
 import random
 import shutil
 import sys,os,os.path
-import time
+import copy
+from time import strftime,sleep,ctime
+
+startTime=strftime("%Y-%m-%d_%H:%M:%S")
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
@@ -159,6 +162,13 @@ def run(config):
                                         config.collectorNode,
                                         config.proxyFile)
     gktid.start()
+
+    workingDir = os.getcwd()
+
+    os.makedirs(workingDir + '/' + startTime)
+    main_log_fname=workingDir + '/' + startTime + '/CTtest.log'
+    main_log=open(main_log_fname,'w')
+
     try:
         # first load the file, so we check it is readable
         fd = open('parameters.cfg', 'r')
@@ -174,6 +184,7 @@ def run(config):
         environment = None
         arguments = None
         concurrency = None
+        runs = 1
 
         # read the values
         for line in lines:
@@ -199,6 +210,8 @@ def run(config):
                 arguments = val
             elif key == 'concurrency':
                 concurrency=val
+            elif key == 'runs':
+                runs = int(val)
         concurrencyLevel = concurrency.split()
 
         # make sure all the needed values have been read,
@@ -213,78 +226,101 @@ def run(config):
         owner = 'Undefined'
         notification = 'Never'
 
-        # Create a testing loop for each concurrency
-        for k in range(0, len(concurrencyLevel), 1):
+        # Create a testing loop for each run
+        for l in range(0, runs, 1):
+            main_log.write("Iteration %i\n"%l)
 
-            # request the glideins
-            # we want 10% more glideins than the concurrency level
-            requestedGlideins = int(concurrencyLevel[k])
-            totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
-            gktid.request_glideins(totalGlideins)
+            # Create a testing loop for each concurrency
+            for k in range(0, len(concurrencyLevel), 1):
+                main_log.write("Concurrency %i\n"%int(concurrencyLevel[k]))
+
+                # request the glideins
+                # we want 10% more glideins than the concurrency level
+                requestedGlideins = int(concurrencyLevel[k])
+                totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
+                gktid.request_glideins(totalGlideins)
+                main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
 		
-            # now we create the directories for each job and a submit file
-            workingDir = os.getcwd()
-            loop = 0
-            dir1 = workingDir + '/test' + concurrencyLevel[k] + '/'
-            os.makedirs(dir1)
-            logfile = workingDir + '/test' + concurrencyLevel[k] + '.log'
-            outputfile = 'test' + concurrencyLevel[k] + '.out'
-            errorfile = 'test' + concurrencyLevel[k] + '.err'
-            filename = 'submit.condor'
-            condorSubmitFile = open(filename, "w")
-            condorSubmitFile.write('universe = ' + universe + '\n')
-            condorSubmitFile.write('executable = ' + executable + '\n')
-            condorSubmitFile.write('transfer_executable = ' + transfer_executable + '\n')
-            if inputFile != None:
-                condorSubmitFile.write('transfer_input_files = ' + inputFile + '\n')
-            if outputFile != None:
-                condorSubmitFile.write('transfer_output_files = ' + outputFile + '\n')
-            if environment != None:
-                condorSubmitFile.write('environment = ' + environment + '\n')
-            condorSubmitFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
-            condorSubmitFile.write('Requirements = ' + requirements + '\n')
-            condorSubmitFile.write('+Owner = ' + owner + '\n')
-            condorSubmitFile.write('log = ' + logfile + '\n')
-            condorSubmitFile.write('output = ' +  outputfile + '\n')
-            condorSubmitFile.write('error = ' + errorfile + '\n')
-            condorSubmitFile.write('notification = ' + notification + '\n')
-            condorSubmitFile.write('+IsSleep = 1\n')
-            condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
-            if arguments != None:
-                condorSubmitFile.write('Arguments = ' + arguments + '\n')
-            for j in range(0, int(concurrencyLevel[k]), 1):
-                condorSubmitFile.write('Initialdir = ' dir1 + 'job' + str(loop) + '\n')
-                condorSubmitFile.write('Queue\n\n')
-                loop = loop + 1
-            for i in range(0, int(concurrencyLevel[k]), 1):
-                dir2 = dir1 + 'job' + str(i) + '/'
-                os.makedirs(dir2)
-            condorSubmitFile.close()
+                # now we create the directories for each job and a submit file
+                workingDir = os.getcwd()
+                loop = 0
+                dir1 = workingDir + '/' + startTime + '/concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '/'
+                os.makedirs(dir1)
+                logfile = workingDir + '/' + startTime + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
+                outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
+                errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
+                filename = executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
+                condorSubmitFile=open(filename, "w")
+                condorSubmitFile.write('universe = ' + universe + '\n')
+                condorSubmitFile.write('executable = ' + executable + '\n')
+                condorSubmitFile.write('transfer_executable = ' + transfer_executable + '\n')
+                if inputFile != None:
+                    condorSubmitFile.write('transfer_input_files = ' + inputFile + '\n')
+                if outputFile != None:
+                    condorSubmitFile.write('transfer_output_files = ' + outputFile + '\n')
+                if environment != None:
+                    condorSubmitFile.write('environment = ' + environment + '\n')
+                condorSubmitFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
+                condorSubmitFile.write('Requirements = ' + requirements + '\n')
+                condorSubmitFile.write('+Owner = ' + owner + '\n')
+                condorSubmitFile.write('log = ' + logfile + '\n')
+                condorSubmitFile.write('output = ' +  outputfile + '\n')
+                condorSubmitFile.write('error = ' + errorfile + '\n')
+                condorSubmitFile.write('notification = ' + notification + '\n')
+                condorSubmitFile.write('+IsSleep = 1\n')
+                condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
+                if arguments != None:
+                    condorSubmitFile.write('Arguments = ' + arguments + '\n')
+                for j in range(0, int(concurrencyLevel[k]), 1):
+                    condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
+                    condorSubmitFile.write('Queue\n\n')
+                    loop = loop + 1
+                for i in range(0, int(concurrencyLevel[k]), 1):
+                    dir2 = dir1 + 'job' + str(i) + '/'
+                    os.makedirs(dir2)
+                condorSubmitFile.close()
 
-        # Need to figure out when we have all the glideins
-        # Ask the glidekeeper object
-        finished = "false"
-        while finished != "true":
-            numberGlideins = gktid.get_running_glideins()
-            print numberGlideins
-            time.sleep(5)
-            if numberGlideins >= requestedGlideins:
-                finished = "true"
+                # Need to figure out when we have all the glideins
+                # Ask the glidekeeper object
+                finished = "false"
+                while finished != "true":
+                    numberGlideins = gktid.get_running_glideins()
+                    main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
+                    main_log.flush()
+                    sleep(5)
+                    if numberGlideins >= requestedGlideins:
+                        finished = "true"
 
-        # Now we begin submission and monitoring
-        submission = condorManager.condorSubmitOne(filename)
-        running = "true"
-        while running != "false":	
-            check1 = condorMonitor.CondorQ()
-            check1.load('Status==3')
-            data = check1.fetch()
-            if len(data.keys()) == 0:
-                running = "false"
+                # Now we begin submission and monitoring
+                submission = condorManager.condorSubmitOne(filename)
+                main_log.write("%s %s\n"%(ctime(), "file submitted"))
+                shutil.move(filename, workingDir + '/' + startTime + '/' + filename)
+                running = "true"
+                while running != "false":
+                    check1 = condorMonitor.CondorQ()
+                    try:
+                        # i actually want to see all jos, not only running ones
+                        check1.load('JobStatus<3', [])
+                        data=check1.fetchStored()
+                    except:
+                        main_log.write("%s %s\n"%(ctime(), "condor_q failed... ignoring for now"))
+                        main_log.flush()
+                        sleep(2)
+                        continue # retry the while loop
+                    main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
+                    main_log.flush()
+                    if len(data.keys()) == 0:
+                        running = "false"
+                        main_log.write("%s %s\n"%(ctime(), "no more running jobs"))
+                    else:
 
-        # Cleanup all the directories and files made
-        shutil.rmtree(dir1)	
+        main_log.write("%s %s\n"%(ctime(), "Done"))
+
+
 
     finally:
+        main_log.write("%s %s\n"%(ctime(), "getting out"))
+        main_log.flush()
         gktid.soft_kill()
         gktid.join()
     
