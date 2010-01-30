@@ -58,8 +58,9 @@ class ArgsParser:
 
         # check and fix the attributes
         if self.runId==None:
-            # not defined, create a random one
-            self.runId="glideTester_%s_%i_%i"%(os.uname()[1],os.getpid(),random.randint(1000,9999))
+            # not defined, create one specific for the account
+            # should not be too random, or you polute the factory namespace
+            self.runId="glideTester_%s_%i"%(os.uname()[1],os.getuid())
         
         # load external values
         self.load_config()
