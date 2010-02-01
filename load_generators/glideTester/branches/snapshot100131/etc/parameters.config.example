@@ -1,0 +1,4 @@
+executable=enter_executable_here
+arguments=enter_arguments_here
+concurrency=5 10
+runs=5

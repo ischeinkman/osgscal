@@ -1,0 +1,16 @@
+################
+# Local params
+#
+glideinWMSDir=/home/sfiligoi/glideinWMS
+configDir=/home/sfiligoi/web_work_dir
+proxyFile=/home/sfiligoi/.globus/my.proxy
+collectorNode=glidein-collector.t2.ucsd.edu:5620-5689
+
+################
+# gfactory attrs
+#
+gfactoryNode=glidein-1.t2.ucsd.edu
+gfactoryConstraint=(FactoryType=?="sleeper")
+gfactoryClassadID=gfactory@glidein-1.t2.ucsd.edu
+myClassadID=frontend@glidein-1.t2.ucsd.edu
+
