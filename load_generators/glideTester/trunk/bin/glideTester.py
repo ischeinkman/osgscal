@@ -21,21 +21,13 @@ startTime=strftime("%Y-%m-%d_%H:%M:%S")
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
-glideinWMSDir='/home/igortest/glideinWMS'
-sys.path.append(os.path.join(glideinWMSDir,"lib"))
-sys.path.append(os.path.join(glideinWMSDir,"frontend"))
-sys.path.append(os.path.join(glideinWMSDir,"creation/lib"))
-
-import condorMonitor
-import condorManager
-import glideKeeper
-
 ############################
 # Configuration class
 class ArgsParser:
     def __init__(self,argv):
         # define defaults
-        self.config='glideTester.cfg' #just a random default
+        self.config=os.path.join(STARTUP_DIR,"../etc/glideTester.cfg")
+        self.params=os.path.join(STARTUP_DIR,"../etc/parameters.cfg")
         self.runId=None
 
         # parse arguments
@@ -48,6 +40,12 @@ class ArgsParser:
                 if not os.path.exists(el):
                     raise RuntimeError,"Config file '%s' not found!"%el
                 self.config=el
+            elif el=='-params':
+                idx+=1
+                el=argv[idx]
+                if not os.path.exists(el):
+                    raise RuntimeError,"Params file '%s' not found!"%el
+                self.params=el
             elif el=='-runId':
                 idx+=1
                 el=argv[idx]
@@ -156,6 +154,7 @@ def run(config):
     os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
     os.environ['X509_USER_PROXY']=config.proxyFile
     import glideKeeper
+    import condorMonitor,condorManager
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
                                         config.runId,
                                         config.myClassadID,
@@ -172,7 +171,7 @@ def run(config):
 
     try:
         # first load the file, so we check it is readable
-        fd = open('parameters.cfg', 'r')
+        fd = open(config.params, 'r')
         try:
             lines = fd.readlines()
         finally:
