@@ -35,8 +35,8 @@ status of the test jobs for each completed concurrency level.
 
 
 == Installation ==
-Specifcy the  glideinWMS directory within glideTester.py
-
+Create a glideinTester.cfg and a parameters.cfg in the etc directory;
+templates are provided.
 
 == Changelog ==
 
