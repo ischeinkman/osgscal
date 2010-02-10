@@ -152,7 +152,7 @@ sub getTopInfo
 
   $_ = $lines[2];
   s/Cpu\(s\):\s*//;
-  s/%..//g;
+  s/%\s*\w\w//g;
   my @cpuvals = split(/,\s*/);
 
   $values{'user'} = $cpuvals[0];
