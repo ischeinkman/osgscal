@@ -3,8 +3,9 @@
 import os
 import sys
 import shutil
-import subprocess
-from subprocess import Popen
+# subprocess module is not in python 2.3
+#import subprocess
+#from subprocess import Popen
 
 STARTUP_DIR = sys.path[0]
 ROOT_DIR = os.path.join(STARTUP_DIR,"../")
@@ -136,7 +137,8 @@ def buildCronFile(instdir, options, facility):
   os.chmod("%s/bin/osgmon_cron.sh" % instdir, 0755)
 
 def updateCron(instdir):
-  cmdin = Popen("crontab -l", shell=True, stdout=subprocess.PIPE).stdout
+#  cmdin = Popen("crontab -l", shell=True, stdout=subprocess.PIPE).stdout
+  cmdin = os.popen("crontab -l", 'r')
 
   lines = cmdin.readlines()
   cmdin.close()
@@ -152,7 +154,8 @@ def updateCron(instdir):
   if not inCron:
     lines.append("*/%i * * * * %s/bin/osgmon_cron.sh\n"
       % (INTERVAL, dirpath))
-    cmdout = Popen("crontab -", shell=True, stdin=subprocess.PIPE).stdin
+#    cmdout = Popen("crontab -", shell=True, stdin=subprocess.PIPE).stdin
+    cmdout = os.popen("crontab -", 'w')
     cmdout.writelines(lines)
     cmdout.close()
 
