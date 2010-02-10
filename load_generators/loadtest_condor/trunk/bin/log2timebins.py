@@ -83,6 +83,10 @@ def main(argv):
     else:
         bins=getBins(logfile)
 
+    total_jobs=0
+    total_idle=0
+    total_globusidle=0
+    total_running=0
     fd=open(outfile,"w")
     try:
         bin_keys=bins.keys()
@@ -92,17 +96,24 @@ def main(argv):
             submitted=0
             if bin_el.has_key('000'):
                 submitted=bin_el['000']
+                total_jobs+=submitted
+                total_idle+=submitted
             submitted_globus=0
             if bin_el.has_key('027'):
                 submitted_globus=bin_el['027']
+                total_globusidle+=submitted
             started=0
             if bin_el.has_key('001'):
                 started=bin_el['001']
+                total_running+=started
+                total_idle-=started
+                total_globusidle-=started
             terminated=0
             if bin_el.has_key('005'):
                 terminated=bin_el['005']
+                total_running-=terminated
 
-            fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i\n"%(k,submitted,submitted_globus,started,terminated))
+            fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,submitted,submitted_globus,started,terminated,total_jobs,total_idle,total_globusidle,total_running))
     finally:
         fd.close()
 
