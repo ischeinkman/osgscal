@@ -24,4 +24,42 @@ line to your crontab:
 
 */5 * * * * $PROC_MON/bin/osgmon_cron.sh
 
+Configuration
+-------------
+Check the $PROC_MON/etc/osgmonitoring.conf file, uncomment and change any system 
+parameters as necessary.  *Note* if you change the default location of the
+out_file, if you are using the syslogger or text logger you must edit the location
+of the osgmonitoring.xml as well in the osgmon_cron.sh file.  You must also change
+this line in any of the config files for the other plugins located in 
+$PROC_MON/etc that you are using.  
 
+Edit $PROC_MON/etc/procs_to_watch.conf to specify which processes you would 
+like to monitor.
+
+Syslogger
+---------
+This plugin adds a line to your syslog.conf with the specified local facility
+you choose on installation.  It also adds a log rotate file in logrotate.d called
+osgmonitoring.
+
+Text Logger
+-----------
+To change the output folder location for the log files change the last argument
+in the osgmon_cron.sh file.
+
+RRD Logger
+----------
+See $PROC_MON/etc/rrdlogger.conf
+
+Ganglia Logger
+--------------
+See $PROC_MON/etc/ganglogger.conf
+
+Zabbix Logger
+--------------
+See $PROC_MON/etc/zablogger.conf
+Once you set up the config file, in order for zabbix to recieve the metrics you
+must manually add each item in zabbix web front-end as "Zabbix Trapper" types.
+The naming convention of the "Key" field is "proc_name.send_type" where proc_name
+is what you defined as the first field in the procs_to_watch.conf file and
+send_type is the metric type specified in the zablogger.conf file.
