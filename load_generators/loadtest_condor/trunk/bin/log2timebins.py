@@ -25,7 +25,7 @@
 import sys
 
 def usage():
-    print "Usage: log2timebins.py <logfile> <outfile> [<nrchars>]"
+    print "Usage: log2timebins.py [-rates|-abs|-all] <logfile> <outfile> [<nrchars>]"
 
 
 class TimeBins:
@@ -76,6 +76,19 @@ def main(argv):
         usage()
         sys.exit(1)
 
+    rates=True
+    abs=True
+    if argv[0]=='-rates':
+        abs=False
+        argv=argv[1:]
+    elif argv[0]=='-abs':
+        rates=False
+        argv=argv[1:]
+    elif argv[0]=='-all':
+        # default
+        argv=argv[1:]
+        
+
     logfile=argv[0]
     outfile=argv[1]
     if len(argv)>=3:
@@ -113,7 +126,12 @@ def main(argv):
                 terminated=bin_el['005']
                 total_running-=terminated
 
-            fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,submitted,submitted_globus,started,terminated,total_jobs,total_idle,total_globusidle,total_running))
+            if abs==False: # rates only
+                fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i\n"%(k,submitted,submitted_globus,started,terminated))
+            elif rates==False: # abs only
+                fd.write("%s JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,total_jobs,total_idle,total_globusidle,total_running))
+            else: # all
+                fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,submitted,submitted_globus,started,terminated,total_jobs,total_idle,total_globusidle,total_running))
     finally:
         fd.close()
 
