@@ -1,6 +1,10 @@
-Name:		procs_monitor_txtlogger
-Version:	0.1
-Release:	1%{?dist}
+%{!?ver:          %define ver      0.1}
+%{!?rel:          %define rel      1}
+%{!?name:         %define name      procs_monitor_txtlogger}
+
+Name:           %{name}
+Version:        %{ver}
+Release:        %{rel}
 Summary:  Logs procs_monitor data
 
 Group:		OSG Scalability

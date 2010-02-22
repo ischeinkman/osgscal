@@ -1,6 +1,10 @@
-Name:		procs_monitor
-Version:	0.1
-Release:	1%{?dist}
+%{!?ver:	  %define ver	   0.1}
+%{!?rel:	  %define rel      1}
+%{!?name:	  %define name      procs_monitor}
+
+Name:		%{name}
+Version:	%{ver}
+Release:	%{rel}
 Summary:  A monitor that tracks information about processes
 
 Group:		OSG Scalability
