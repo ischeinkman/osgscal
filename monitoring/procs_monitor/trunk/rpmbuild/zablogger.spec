@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/zablogger.py*
 /etc/procs_monitor/zablogger.conf
-%doc
+%doc LICENSE
 
 %changelog
 

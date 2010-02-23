@@ -12,6 +12,7 @@ cp $ROOT_DIR/bin/syslogger.py $TMP_DIR
 cp $ROOT_DIR/etc/osg_log_rotate $TMP_DIR
 cp $ROOT_DIR/etc/procs_to_watch.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/syslogger.spec $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 tar -czvf ${NAME}-${VERSION}.tgz ${NAME}-${VERSION}/
 

@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/rrdlogger.py*
 /etc/procs_monitor/rrdlogger.conf
-%doc
+%doc LICENSE
 
 %changelog
 

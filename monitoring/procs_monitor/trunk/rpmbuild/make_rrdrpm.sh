@@ -11,6 +11,7 @@ mkdir -p $TMP_DIR
 cp $ROOT_DIR/bin/rrdlogger.py $TMP_DIR
 cp $ROOT_DIR/etc/rrdlogger.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/rrdlogger.spec $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 sed -i 's|^#\(.*\)\$PROC_MON|\1/var/lib/procs_monitor|g' $TMP_DIR/rrdlogger.conf
 

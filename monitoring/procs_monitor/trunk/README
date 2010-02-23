@@ -45,7 +45,7 @@ osgmonitoring.
 Text Logger
 -----------
 To change the output folder location for the log files change the last argument
-in the osgmon_cron.sh file.
+in the osgmon_cron.sh file.  *Note* these log files grow indefinitely.
 
 RRD Logger
 ----------
@@ -80,11 +80,12 @@ Each plugin depends on the core procs_monitor RPM. If installing from RPMs the
 default file locations are different.
 
 Important file locations:
-config files: /etc/procs_monitor
-binaries: /usr/local/libexec/procs_monitor
-text logs: /var/lib/procs_monitor/procs
-rrd files: /var/lib/procs_monitor
-           /var/lib/procs_monitor/procrrds
+config files: /etc/procs_monitor/
+binaries: /usr/local/libexec/procs_monitor/
+text logs: /var/lib/procs_monitor/procs/
+rrd files: /var/lib/procs_monitor/
+           /var/lib/procs_monitor/procrrds/
+this README: /usr/share/doc/procs_monitor-0.1/
 
 The cron file will be placed in /etc/cron.d.  The syslogger RPM will find the
 first available local facility.

@@ -13,6 +13,8 @@ cp $ROOT_DIR/lib/* $TMP_DIR
 cp $ROOT_DIR/etc/osgmonitoring.conf $TMP_DIR
 cp $ROOT_DIR/etc/procs_to_watch.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/proc_mon.spec $TMP_DIR
+cp $ROOT_DIR/README $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 sed -i -e 's|^#\(procs_conf = \)\$PROC_MON/etc|\1/etc/procs_monitor|g' -e 's|^#\(out_file = \)\$PROC_MON|\1/var/lib/procs_monitor|g' $TMP_DIR/osgmonitoring.conf 
 

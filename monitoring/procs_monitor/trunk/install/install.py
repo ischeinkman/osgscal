@@ -41,6 +41,14 @@ def updateConfPath(path, instdir):
 '''
 def populateDirs(instdir, options):
   # copy collector files
+  shutil.copyfile("%s/README" % ROOT_DIR,
+    "%s/README" % instdir)
+  os.chmod("%s/README" % instdir, 0644)
+
+  shutil.copyfile("%s/LICENSE" % ROOT_DIR,
+    "%s/LICENSE" % instdir)
+  os.chmod("%s/LICENSE" % instdir, 0644)
+
   shutil.copyfile("%s/bin/proc_collector.pl" % ROOT_DIR,
     "%s/bin/proc_collector.pl" % instdir)
   os.chmod("%s/bin/proc_collector.pl" % instdir, 0755)

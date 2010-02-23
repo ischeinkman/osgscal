@@ -11,6 +11,7 @@ mkdir -p $TMP_DIR
 cp $ROOT_DIR/bin/zablogger.py $TMP_DIR
 cp $ROOT_DIR/etc/zablogger.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/zablogger.spec $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 sed -i 's|^#\(.*\)\$PROC_MON|\1/var/lib/procs_monitor|g' $TMP_DIR/zablogger.conf
 

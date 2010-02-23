@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/ganglogger.py*
 /etc/procs_monitor/ganglogger.conf
-%doc
+%doc LICENSE
 
 %changelog
 

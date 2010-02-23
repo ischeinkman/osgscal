@@ -88,7 +88,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/syslogger.py*
 /etc/logrotate.d/osgmonitoring
-%doc
+%doc LICENSE
 
 %changelog
 

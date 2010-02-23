@@ -48,7 +48,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/txtlogger.py*
-%doc
+%doc LICENSE
 
 %changelog
 

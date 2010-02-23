@@ -11,6 +11,7 @@ mkdir -p $TMP_DIR
 cp $ROOT_DIR/bin/ganglogger.py $TMP_DIR
 cp $ROOT_DIR/etc/ganglogger.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/ganglogger.spec $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 sed -i 's|^#\(.*\)\$PROC_MON|\1/var/lib/procs_monitor|g' $TMP_DIR/ganglogger.conf
 

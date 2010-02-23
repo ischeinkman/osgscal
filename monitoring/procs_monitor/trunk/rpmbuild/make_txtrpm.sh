@@ -10,6 +10,7 @@ TMP_DIR=${NAME}-${VERSION}
 mkdir -p $TMP_DIR
 cp $ROOT_DIR/bin/txtlogger.py $TMP_DIR
 cp $ROOT_DIR/rpmbuild/txtlogger.spec $TMP_DIR
+cp $ROOT_DIR/LICENSE $TMP_DIR
 
 tar -czvf ${NAME}-${VERSION}.tgz ${NAME}-${VERSION}/
 

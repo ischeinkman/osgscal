@@ -58,7 +58,7 @@ rm -rf %{buildroot}
 /etc/procs_monitor/
 /etc/cron.d/proc_mon.cron
 /var/lib/procs_monitor/
-%doc
+%doc README LICENSE
 
 %changelog
 
