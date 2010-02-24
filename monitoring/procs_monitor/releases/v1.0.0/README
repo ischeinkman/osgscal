@@ -1,0 +1,91 @@
+Process Monitor
+---------------
+
+Dependencies
+------------
+python 2.3
+perl 5.8
+python-elementtree 1.2.6
+
+Needed for optional plugins:
+rrdtool 1.3.8
+rrdtool-python 1.3.8
+ganglia 3.1.2
+zabbix 1.6.1
+
+Installation
+------------
+run ./install.py and follow the instructions
+
+Installs in specified directory during installation.  This will be known as
+$PROC_MON in this document.  The collector and plugins are all called from inside
+a wrapper script $PROC_MON/bin/osgmon_cron.sh.  The installer adds the following
+line to your crontab:
+
+*/5 * * * * $PROC_MON/bin/osgmon_cron.sh
+
+Configuration
+-------------
+Check the $PROC_MON/etc/osgmonitoring.conf file, uncomment and change any system 
+parameters as necessary.  *Note* if you change the default location of the
+out_file, if you are using the syslogger or text logger you must edit the location
+of the osgmonitoring.xml as well in the osgmon_cron.sh file.  You must also change
+this line in any of the config files for the other plugins located in 
+$PROC_MON/etc that you are using.  
+
+Edit $PROC_MON/etc/procs_to_watch.conf to specify which processes you would 
+like to monitor.
+
+Syslogger
+---------
+This plugin adds a line to your syslog.conf with the specified local facility
+you choose on installation.  It also adds a log rotate file in logrotate.d called
+osgmonitoring.
+
+Text Logger
+-----------
+To change the output folder location for the log files change the last argument
+in the osgmon_cron.sh file.  *Note* these log files grow indefinitely.
+
+RRD Logger
+----------
+See $PROC_MON/etc/rrdlogger.conf
+
+Ganglia Logger
+--------------
+See $PROC_MON/etc/ganglogger.conf
+
+Zabbix Logger
+--------------
+See $PROC_MON/etc/zablogger.conf
+Once you set up the config file, in order for zabbix to recieve the metrics you
+must manually add each item in zabbix web front-end as "Zabbix Trapper" types.
+The naming convention of the "Key" field is "proc_name.send_type" where proc_name
+is what you defined as the first field in the procs_to_watch.conf file and
+send_type is the metric type specified in the zablogger.conf file.
+
+RPM Install info
+----------------
+Core RPM:
+procs_monitor-1.0.0-1.noarch.rpm
+
+Plugins:
+procs_monitor_syslogger-1.0.0-1.noarch.rpm
+procs_monitor_txtlogger-1.0.0-1.noarch.rpm
+procs_monitor_rrdlogger-1.0.0-1.noarch.rpm
+procs_monitor_ganglogger-1.0.0-1.noarch.rpm
+procs_monitor_zablogger-1.0.0-1.noarch.rpm
+
+Each plugin depends on the core procs_monitor RPM. If installing from RPMs the 
+default file locations are different.
+
+Important file locations:
+config files: /etc/procs_monitor/
+binaries: /usr/local/libexec/procs_monitor/
+text logs: /var/lib/procs_monitor/procs/
+rrd files: /var/lib/procs_monitor/
+           /var/lib/procs_monitor/procrrds/
+this README: /usr/share/doc/procs_monitor-0.1/
+
+The cron file will be placed in /etc/cron.d.  The syslogger RPM will find the
+first available local facility.

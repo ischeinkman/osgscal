@@ -1,0 +1,7 @@
+/var/log/osgmonitoring.log {
+    missingok
+    notifempty
+    rotate 7
+    weekly
+    create 0600 root root
+}
