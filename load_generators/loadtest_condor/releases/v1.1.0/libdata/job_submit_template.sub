@@ -1,0 +1,18 @@
+executable = lt_job.sh
+arguments = $(tcluster).$(tprocess) job.config
+transfer_executable = True
+
+stream_output = False
+stream_error  = False
+
+output = job.out.$(tcluster).$(tprocess)
+error  = job.err.$(tcluster).$(tprocess)
+log = $(WorkDir)/job.log
+
+
+should_transfer_files = YES
+WhenToTransferOutput = ON_EXIT
+
+notification = Never
+
+Initialdir  = $(WorkDir)/$(tcluster)
