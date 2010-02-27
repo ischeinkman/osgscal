@@ -404,14 +404,14 @@ def run(config):
                 # Create summary directory structure
                 filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
                 file=open(filePath, 'w')
-                header = "# Test Results for " + executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob#\tExecuteTime\tFinishTime\tReturnValue\n'
+                header = "# Test Results for " + executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
                 file.write(header)
                 exeTime=0
                 finTime=0
                 for i in range(0, int(concurrencyLevel[k])):
                     exeTime = exeTime + results[i][1]
                     finTime = finTime + results[i][2]
-                    writeData = str(results[i][0]) + '\t' + str(results[i][1]) + '\t\t' + str(results[i][2]) + '\t\t' + results[i][3] + '\n'
+                    writeData = str(results[i][0]) + '\t' + str(results[i][1]) + '\t' + str(results[i][2]) + '\t' + results[i][3] + '\n'
                     file.write(writeData)
 
                 aveExeTime = exeTime/int(concurrencyLevel[k])
@@ -420,7 +420,7 @@ def run(config):
 
                 filepath = summDir + 'results.txt'
                 file=open(filepath, 'a')
-                times = "Concurrency Level = " + concurrencyLevel[k] + "\tExecute Time(Ave/Min/Max) = " + str(aveExeTime) + '/' + str(minExeTime) + '/' + str(maxExeTime) + "\tFinish Time(Ave/Min/Max) = " + str(aveFinTime) + "/" + str(minFinTime) + "/" + str(maxFinTime) + '\n'
+                times = "Concurrency_Level = " + concurrencyLevel[k] + "\t  Execute_Time_(Ave/Min/Max) = " + str(aveExeTime) + '/' + str(minExeTime) + '/' + str(maxExeTime) + "\t  Finish_Time_(Ave/Min/Max) = " + str(aveFinTime) + "/" + str(minFinTime) + "/" + str(maxFinTime) + '\n'
                 file.write(times)
                 file.close()
 
