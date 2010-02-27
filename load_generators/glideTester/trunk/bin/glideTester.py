@@ -162,9 +162,7 @@ def run(config):
                                         config.collectorNode,
                                         config.proxyFile)
     gktid.start()
-
     workingDir = os.getcwd()
-
     os.makedirs(workingDir + '/' + startTime)
     main_log_fname=workingDir + '/' + startTime + '/glideTester.log'
     main_log=open(main_log_fname,'w')
@@ -250,26 +248,26 @@ def run(config):
                 errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
                 filename = executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
                 condorSubmitFile=open(filename, "w")
-                condorSubmitFile.write('universe = ' + universe + '\n')
-                condorSubmitFile.write('executable = ' + executable + '\n')
-                condorSubmitFile.write('transfer_executable = ' + transfer_executable + '\n')
+                condorSubmitFile.write('universe = ' + universe + '\n' +
+                                       'executable = ' + executable + '\n' +
+                                       'transfer_executable = ' + transfer_executable + '\n' +
+                                       'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
+                                       'Requirements = ' + requirements + '\n' +
+                                       '+Owner = ' + owner + '\n' +
+                                       'log = ' + logfile + '\n' +
+                                       'output = ' +  outputfile + '\n' +
+                                       'error = ' + errorfile + '\n' +
+                                       'notification = ' + notification + '\n' +
+                                       '+IsSleep = 1\n')
                 if inputFile != None:
                     condorSubmitFile.write('transfer_input_files = ' + inputFile + '\n')
                 if outputFile != None:
                     condorSubmitFile.write('transfer_output_files = ' + outputFile + '\n')
                 if environment != None:
                     condorSubmitFile.write('environment = ' + environment + '\n')
-                condorSubmitFile.write('when_to_transfer_output = ' + when_to_transfer_output + '\n')
-                condorSubmitFile.write('Requirements = ' + requirements + '\n')
-                condorSubmitFile.write('+Owner = ' + owner + '\n')
-                condorSubmitFile.write('log = ' + logfile + '\n')
-                condorSubmitFile.write('output = ' +  outputfile + '\n')
-                condorSubmitFile.write('error = ' + errorfile + '\n')
-                condorSubmitFile.write('notification = ' + notification + '\n')
-                condorSubmitFile.write('+IsSleep = 1\n')
-                condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
                 if arguments != None:
                     condorSubmitFile.write('Arguments = ' + arguments + '\n')
+                condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
                 for j in range(0, int(concurrencyLevel[k]), 1):
                     condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
                     condorSubmitFile.write('Queue\n\n')
@@ -316,7 +314,115 @@ def run(config):
 
         main_log.write("%s %s\n"%(ctime(), "Done"))
 
+        # Now we parse the log files
 
+        # Create a loop to parse each log file into a summaries directory
+        summDir = workingDir + '/' + startTime + '/summaries/'
+        os.makedirs(summDir)
+        for l in range(0, runs, 1):
+            for k in range(0, len(concurrencyLevel), 1):
+
+                # Initialize empty arrays for data
+                results=[]
+                hours=[]
+                minutes=[]
+                seconds=[]
+                jobStartInfo=[]
+                jobExecuteInfo=[]
+                jobFinishInfo=[]
+                jobStatus=[]
+
+                # Parse each log file
+                logFile = workingDir + '/' + startTime + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
+                lf = open(logFile, 'r')
+                try:
+                    lines1 = lf.readlines()
+                finally:
+                    lf.close()
+                jobsSubmitted = 0
+                for line in lines1:
+                    line = line.strip()
+                    if line[0:1] not in ('0','1','2','3','4','5','6','7','8','9','('):
+                        continue # ignore unwanted text lines
+                    arr1=line.split(' ',7)
+                    if arr1[5] == "Bytes" or arr1[4] =="Image":
+                        continue
+                    if arr1[5] == "submitted":
+                        jobNum = arr1[1].strip('()')
+                        jobStartInfo.append(jobNum)
+                        jobStartInfo.append(arr1[3])
+                        jobsSubmitted=jobsSubmitted+1
+                    if arr1[5] == "executing":
+                        jobNum = arr1[1].strip('()')
+                        jobExecuteInfo.append(jobNum)
+                        jobExecuteInfo.append(arr1[3])
+                    if arr1[5] == "terminated.":
+                        jobNum = arr1[1].strip('()')
+                        jobFinishInfo.append(jobNum)
+                        jobFinishInfo.append(arr1[3])
+                    if arr1[4] == "value":
+                        status=arr1[5].split(')',1)
+                        jobFinishInfo.append(status[0])
+
+                # Set some variables
+                minExeTime=1e20
+                maxExeTime=0
+                minFinTime=1e20
+                maxFinTime=0
+                iter=0
+                for i in range(0, len(jobStartInfo), 2):
+                    if jobStartInfo[i] in jobExecuteInfo:
+                        index = jobExecuteInfo.index(jobStartInfo[i])
+                        timeJobStart = jobStartInfo[i + 1]
+                        timeJobExecute = jobExecuteInfo[index + 1]
+                        timeStart = timeJobStart.split(':', 2)
+                        timeExecute = timeJobExecute.split(':', 2)
+                        diffHours = (int(timeExecute[0]) - int(timeStart[0])) * 3600
+                        diffMinutes = (int(timeExecute[1]) - int(timeStart[1])) * 60
+                        diffSeconds = int(timeExecute[2]) - int(timeStart[2])
+                        executeTime = diffHours + diffMinutes + diffSeconds
+                        index2 = jobFinishInfo.index(jobStartInfo[i])
+                        timeJobFinish = jobFinishInfo[index2 + 1]
+                        stat = jobFinishInfo[index2 +2]
+                        timeFinish = timeJobFinish.split(':', 2)
+                        diffHours2 = (int(timeFinish[0]) - int(timeExecute[0])) * 3600
+                        diffMinutes2 = (int(timeFinish[1]) - int(timeExecute[1])) * 60
+                        diffSeconds2 = int(timeFinish[2]) - int(timeExecute[2])
+                        finishTime = diffHours2 + diffMinutes2 + diffSeconds2
+                        resultData = [iter, executeTime, finishTime, stat]
+                        results.append(resultData)
+                        iter = iter + 1
+                        if executeTime > maxExeTime:
+                            maxExeTime = executeTime
+                        if executeTime < minExeTime:
+                            minExeTime = executeTime
+                        if finishTime > maxFinTime:
+                            maxFinTime = finishTime
+                        if finishTime < minFinTime:
+                            minFinTime = finishTime
+
+                # Create summary directory structure
+                filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
+                file=open(filePath, 'w')
+                header = "# Test Results for " + executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob#\tExecuteTime\tFinishTime\tReturnValue\n'
+                file.write(header)
+                exeTime=0
+                finTime=0
+                for i in range(0, int(concurrencyLevel[k])):
+                    exeTime = exeTime + results[i][1]
+                    finTime = finTime + results[i][2]
+                    writeData = str(results[i][0]) + '\t' + str(results[i][1]) + '\t\t' + str(results[i][2]) + '\t\t' + results[i][3] + '\n'
+                    file.write(writeData)
+
+                aveExeTime = exeTime/int(concurrencyLevel[k])
+                aveFinTime = finTime/int(concurrencyLevel[k])
+                file.close()
+
+                filepath = summDir + 'results.txt'
+                file=open(filepath, 'a')
+                times = "Concurrency Level = " + concurrencyLevel[k] + "\tExecute Time(Ave/Min/Max) = " + str(aveExeTime) + '/' + str(minExeTime) + '/' + str(maxExeTime) + "\tFinish Time(Ave/Min/Max) = " + str(aveFinTime) + "/" + str(minFinTime) + "/" + str(maxFinTime) + '\n'
+                file.write(times)
+                file.close()
 
     finally:
         main_log.write("%s %s\n"%(ctime(), "getting out"))
