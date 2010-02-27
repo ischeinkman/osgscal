@@ -1,11 +1,13 @@
-== Creators ==
+=== Creators ===
+
 Igor Sfiligoi <isfiligoi@ucsd.edu>
 Christopher Theissen <ctheisse@ucsd.edu>
 University of California, San Diego
 Release Date: January 29, 2010
 
 
-== Description ==
+=== Description ===
+
 The Condor daemons and the glideinWMS glidein
 factory daemon are used unmodified, and configured and
 operated as suggested by the glideinWMS manuals. All the
@@ -34,11 +36,29 @@ the future. However, the tester daemon does provide the exit
 status of the test jobs for each completed concurrency level.
 
 
-== Installation ==
-Create a glideinTester.cfg and a parameters.cfg in the etc directory;
+=== Installation ===
+
+You must have the collector and schedd components of glideinWMS
+installed. Install package with instructions can be found at:
+
+http://www.uscms.org/SoftwareComputing/Grid/WMS/glideinWMS/
+
+* Basic Installation *
+
+(1) Run createTesterWebStruct.py to create the required 
+frontend files.
+
+Note: Make sure you relax your firewall rules to allow the 
+collector and schedd to communicate with the required nodes.
+
+(2) Create a glideTester.cfg and a parameters.cfg in /etc; 
 templates are provided.
 
-== Changelog ==
+(3) Run glideTester.py
 
+
+=== Changelog ===
+
+2/26/10 - Added parsing and summaries to glideTester
 
 
