@@ -8,22 +8,27 @@ Release Date: January 29, 2010
 
 === Description ===
 
+The glideTester is a testing framework aimed at testing
+network facing services by using Grid resources.
+The aim is to perform the same test at different concurrency
+levels in a deterministic way. To fully automate the process,
+glideTester heavily leverages the glideinWMS system for this purpose.
+
 The Condor daemons and the glideinWMS glidein
 factory daemon are used unmodified, and configured and
 operated as suggested by the glideinWMS manuals. All the
 Condor monitoring and debugging features are thus
 available.
 
-The tester daemon itself is written in Python[11], the
-same language used by the glideinWMS. This allowed us to
-use the same libraries the glideinWMS frontend uses
-internally for both the communication with the glideinWMS
-factory and for the interaction with the Condor daemons.
-All interaction with the tester is based on configuration
-files. Simple ASCII files, composed of key = value lines are
-used. Comments are of course supported.
+The tester daemon instead replaces the VO frontend.
+The reason for reimplementing the frontend is simple;
+the frontend provided with the glideinWMS is designed to be reactive; 
+its modus operandi is to monitor a Condor scheduler for 
+waiting jobs and to request glideins if there are any.
+What we need instead is to first create the needed glidein
+pool and then submit the test jobs.
 
-Our daemon does not assume anything about the test
+Our system does not assume anything about the test
 jobs; it only submits them and saves the output. In order to
 prevent data loss, a separate subdirectory is created for each
 instance of the test jobs. Moreover, to keep bookkeeping
@@ -38,18 +43,23 @@ status of the test jobs for each completed concurrency level.
 
 === Installation ===
 
-You must have the collector and schedd components of glideinWMS
-installed. Install package with instructions can be found at:
+You must have the glidein pool collector and schedd 
+components of glideinWMS installed. 
 
-http://www.uscms.org/SoftwareComputing/Grid/WMS/glideinWMS/
+Install package with instructions can be found at:
+http://www.uscms.org/SoftwareComputing.old/Grid/WMS/glideinWMS/doc.v2/install/
+
+You will also need a glidein factory. Installation for it
+can also be found at the link above, but you should leverage
+an existing gldiein factory, if possible.
+
+Note: The glideinWMS requires incoming network connectivity,
+      so make sure your firewall allows that.
 
 * Basic Installation *
 
 (1) Run createTesterWebStruct.py to create the required 
 frontend files.
-
-Note: Make sure you relax your firewall rules to allow the 
-collector and schedd to communicate with the required nodes.
 
 (2) Create a glideTester.cfg and a parameters.cfg in /etc; 
 templates are provided.
