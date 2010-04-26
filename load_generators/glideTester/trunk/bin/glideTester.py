@@ -58,7 +58,7 @@ class ArgsParser:
         if self.runId==None:
             # not defined, create one specific for the account
             # should not be too random, or you polute the factory namespace
-            self.runId="glideTester_%s_%i"%(os.uname()[1],os.getuid())
+            self.runId="u%i"%os.getuid()
         
         # load external values
         self.load_config()
@@ -83,11 +83,13 @@ class ArgsParser:
         self.glideinWMSDir=None
         self.configDir=None
         self.proxyFile=None
+        self.delegateProxy=False
         self.collectorNode=None
         self.gfactoryNode=None
         self.gfactoryConstraint=None
         self.gfactoryClassadID=None
         self.myClassadID=None
+        self.mySecurityName=None
 
         # read the values
         for line in lines:
@@ -111,6 +113,8 @@ class ArgsParser:
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
                 self.proxyFile=val
+            elif key=='delegateProxy':
+                self.delegateProxy=eval(val)
             elif key=='collectorNode':
                 self.collectorNode=val
             elif key=='gfactoryNode':
@@ -121,6 +125,8 @@ class ArgsParser:
                 self.gfactoryClassadID=val
             elif key=='myClassadID':
                 self.myClassadID=val
+            elif key=='mySecurityName':
+                self.mySecurityName=val
             else:
                 raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
 
@@ -140,6 +146,8 @@ class ArgsParser:
             raise RuntimeError, "myClassadID was not defined!"
         # it would be wise to verify the signature here, but will not do just now
         # to be implemented
+        if self.mySecurityName==None:
+            raise RuntimeError, "mySecurityName was not defined!"
         
     def load_config_dir(self):
         import cgkWDictFile
@@ -155,12 +163,16 @@ def run(config):
     os.environ['X509_USER_PROXY']=config.proxyFile
     import glideKeeper
     import condorMonitor,condorManager
+
+    delegated_proxy=None
+    if config.delegateProxy:
+        delegated_proxy=config.proxyFile
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
-                                        config.runId,
+                                        config.mySecurityName,config.runId,
                                         config.myClassadID,
                                         [(config.gfactoryNode,config.gfactoryClassadID)],config.gfactoryConstraint,
                                         config.collectorNode,
-                                        config.proxyFile)
+                                        delegated_proxy)
     gktid.start()
     workingDir = os.getcwd()
     os.makedirs(workingDir + '/' + startTime)
@@ -219,7 +231,8 @@ def run(config):
             raise RuntimeError, "executable was not defined!"
         transfer_executable = "True"
         when_to_transfer_output = "ON_EXIT"
-        requirements = '(GLIDEIN_Site =!= "UCSD12") && (Arch =!= "abc")'
+        # disable the check for architecture, we are running a script
+        requirements = '(Arch =!= "fake")'
         owner = 'Undefined'
         notification = 'Never'
 
