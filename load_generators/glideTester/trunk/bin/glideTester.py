@@ -294,6 +294,11 @@ def run(config):
                 # Ask the glidekeeper object
                 finished = "false"
                 while finished != "true":
+                    last_error=gktid.last_error
+                    gktid.last_error=None
+                    if last_error!=None:
+                        main_log.write("%s Error: %s\n"%(ctime(),last_error))
+                        
                     numberGlideins = gktid.get_running_glideins()
                     main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
                     main_log.flush()
