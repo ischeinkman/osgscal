@@ -177,15 +177,19 @@ class GlideKeeperThread(threading.Thread):
         if running_glideins>=self.needed_glideins:
             additional_glideins=0
         else:
-            # ask for a third since it takes a few cycles to stabilize
-            additional_glideins=(self.needed_glideins-running_glideins)/3+1
+            # ask for 2/3 since it takes a few cycles to stabilize
+            additional_glideins=(self.needed_glideins-running_glideins)*2/3+1
             if additional_glideins>self.max_request:
                 additional_glideins=self.max_request
 
-        if nr_entries>2: # overrequest, as some entries may not give us anything
-            more_per_entry=(additional_glideins/(nr_entries-1))+1
+        if nr_entries>1: # scale down, or we will get much more than we need
+            if nr_entries>5:
+                # go to exponential mode at this point, for simplicty
+                more_per_entry=(additional_glideins/(nr_entries-1))+1
+            else:
+                more_per_entry=(additional_glideins*(10-1.5*nr_entries)/10)+1
         else:
-            # if we have just 2 or less, ask each the maximum
+            # if we have just 1 or less, ask each the maximum
             more_per_entry=additional_glideins
         
         # here we have all the data needed to build a GroupAdvertizeType object
