@@ -10,6 +10,7 @@
 #
 ########################################
 
+import string
 import random
 import shutil
 import sys,os,os.path
@@ -211,7 +212,11 @@ def run(config):
                     raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
                 executable = val
             elif key == 'transfer_input_files':
-                inputFile = val
+                arr=val.split(',')
+                newarr=[]
+                for f in arr:
+                    newarr.append(os.path.abspath(f))
+                inputFile = string.join(newarr,',')
             elif key == 'transfer_output_files':
                 outputFile = val
             elif key == 'environment':
