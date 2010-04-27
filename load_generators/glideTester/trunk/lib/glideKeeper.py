@@ -21,7 +21,8 @@ import condorMonitor
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
                  web_url,descript_fname,descript_signature,
-                 glidekeeper_id,classad_id,
+                 security_name,instance_id,
+                 classad_id,
                  factory_pools,factory_constraint,
                  collector_node,
                  proxy_fname):
@@ -36,6 +37,9 @@ class GlideKeeperThread(threading.Thread):
         self.descript_signature=descript_signature
 
         # string, used for identification
+        self.security_name=security_name
+        self.instance_id=instance_id
+        glidekeeper_id="%s_%s"%(security_name,instance_id)
         self.glidekeeper_id=glidekeeper_id
 
         # string, what our ads will be identified at the factories
@@ -208,7 +212,8 @@ class GlideKeeperThread(threading.Thread):
                            glidename,glidename,
                            more_per_entry,self.needed_glideins*12/10,
                            glidein_params,glidein_monitors,
-                           key_obj,glidein_params_to_encrypt=None)
+                           key_obj,glidein_params_to_encrypt=None,
+                           security_name=self.security_name)
 
         
         try:
