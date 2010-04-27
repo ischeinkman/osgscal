@@ -24,7 +24,7 @@ class glideKeeperDicts(cvWDictFile.frontendMainDicts):
             web_stage_dir=os.path.join(work_dir,'web')
         cvWDictFile.frontendMainDicts.__init__(self,work_dir,web_stage_dir,
                                                workdir_name="web",simple_work_dir=True,assume_groups=False)
-        self.add_dir_obj(cWDictFile.symlinkSupport(web_stage_dir,'web',work_dir))
+        self.add_dir_obj(cWDictFile.symlinkSupport(web_stage_dir,os.path.join(work_dir,'web'),"web"))
         
     def populate(self,final_web_url,gridmap_file):
         self.dicts['frontend_descript'].add('WebURL',final_web_url)
