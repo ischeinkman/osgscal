@@ -70,5 +70,8 @@ templates are provided.
 === Changelog ===
 
 2/26/10 - Added parsing and summaries to glideTester
+4/26/10 - Add timed_loop support script
+4/26/10 - Add support for delegateProxy and mySecurityName
+4/26/10 - Fix interoperability with glideinWMS v2_4
 
 
