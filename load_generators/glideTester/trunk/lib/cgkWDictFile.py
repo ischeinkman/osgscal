@@ -28,4 +28,5 @@ class glideKeeperDicts(cvWDictFile.frontendMainDicts):
         
     def populate(self,final_web_url,gridmap_file):
         self.dicts['frontend_descript'].add('WebURL',final_web_url)
-        self.dicts['preentry_file_list'].add_from_file('grid-mapfile',(cWConsts.insert_timestr('grid-mapfile'),'regular','TRUE','FALSE'),gridmap_file)
+        self.dicts['gridmap'].load(dir=os.path.dirname(gridmap_file),fname=os.path.basename(gridmap_file),
+                                   change_self=False,erase_first=True,set_not_changed=False)
