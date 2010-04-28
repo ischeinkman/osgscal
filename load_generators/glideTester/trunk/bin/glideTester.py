@@ -70,7 +70,8 @@ class ArgsParser:
         sys.path.append(os.path.join(self.glideinWMSDir,"frontend"))
 
         self.load_config_dir()
-        
+
+        self.load_params()
 
     def load_config(self):
         # first load file, so we check it is readable
@@ -159,6 +160,61 @@ class ArgsParser:
         self.descriptSignature,self.descriptFile=self.frontend_dicts.dicts['summary_signature']['main']
 
 
+    def load_params(self):
+        # first load the file, so we check it is readable
+        fd = open(self.params, 'r')
+        try:
+            lines = fd.readlines()
+        finally:
+            fd.close()
+
+        # reset the values
+        self.executable = None
+        self.inputFile = None
+        self.outputFile = None
+        self.environment = None
+        self.arguments = None
+        self.concurrency = None
+        self.runs = 1
+
+        # read the values
+        for line in lines:
+            line = line.strip()
+            if line[0:1] in ('#',''):
+                continue # ignore comments and empty lines
+            arr = line.split('=',1)
+            if len(arr) != 2:
+                raise RuntimeError, 'Invalid parameter line, missing =: %s'%line
+            key = arr[0].strip()
+            val = arr[1].strip()
+            if key == 'executable':
+                if not os.path.exists(val):
+                    raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
+                self.executable = val
+            elif key == 'transfer_input_files':
+                arr=val.split(',')
+                newarr=[]
+                for f in arr:
+                    newarr.append(os.path.abspath(f))
+                self.inputFile = string.join(newarr,',')
+            elif key == 'transfer_output_files':
+                self.outputFile = val
+            elif key == 'environment':
+                self.environment = val
+            elif key == 'arguments':
+                self.arguments = val
+            elif key == 'concurrency':
+                self.concurrency=val
+            elif key == 'runs':
+                self.runs = int(val)
+
+        if self.concurrency==None:
+            raise RuntimeError, "concurrency was not defined!"
+        self.concurrencyLevel = self.concurrency.split()
+
+        if self.executable == None:
+            raise RuntimeError, "executable was not defined!"
+
 def run(config):
     os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
     os.environ['X509_USER_PROXY']=config.proxyFile
@@ -181,59 +237,7 @@ def run(config):
     main_log=open(main_log_fname,'w')
 
     try:
-        # first load the file, so we check it is readable
-        fd = open(config.params, 'r')
-        try:
-            lines = fd.readlines()
-        finally:
-            fd.close()
-
-        # reset the values
-        executable = None
-        inputFile = None
-        outputFile = None
-        environment = None
-        arguments = None
-        concurrency = None
-        runs = 1
-
-        # read the values
-        for line in lines:
-            line = line.strip()
-            if line[0:1] in ('#',''):
-                continue # ignore comments and empty lines
-            arr = line.split('=',1)
-            if len(arr) != 2:
-                raise RuntimeError, 'Invalid parameter line, missing =: %s'%line
-            key = arr[0].strip()
-            val = arr[1].strip()
-            if key == 'executable':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
-                executable = val
-            elif key == 'transfer_input_files':
-                arr=val.split(',')
-                newarr=[]
-                for f in arr:
-                    newarr.append(os.path.abspath(f))
-                inputFile = string.join(newarr,',')
-            elif key == 'transfer_output_files':
-                outputFile = val
-            elif key == 'environment':
-                environment = val
-            elif key == 'arguments':
-                arguments = val
-            elif key == 'concurrency':
-                concurrency=val
-            elif key == 'runs':
-                runs = int(val)
-        concurrencyLevel = concurrency.split()
-
-        # make sure all the needed values have been read,
-        # and assign defaults, if needed
         universe = 'vanilla'
-        if executable == None:
-            raise RuntimeError, "executable was not defined!"
         transfer_executable = "True"
         when_to_transfer_output = "ON_EXIT"
         # disable the check for architecture, we are running a script
@@ -241,8 +245,10 @@ def run(config):
         owner = 'Undefined'
         notification = 'Never'
 
+        concurrencyLevel=config.concurrencyLevel
+
         # Create a testing loop for each run
-        for l in range(0, runs, 1):
+        for l in range(0, config.runs, 1):
             main_log.write("Iteration %i\n"%l)
 
             # Create a testing loop for each concurrency
@@ -264,10 +270,10 @@ def run(config):
                 logfile = workingDir + '/' + startTime + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
                 outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
                 errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
-                filename = executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
+                filename = config.executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
                 condorSubmitFile=open(filename, "w")
                 condorSubmitFile.write('universe = ' + universe + '\n' +
-                                       'executable = ' + executable + '\n' +
+                                       'executable = ' + config.executable + '\n' +
                                        'transfer_executable = ' + transfer_executable + '\n' +
                                        'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
                                        'Requirements = ' + requirements + '\n' +
@@ -277,14 +283,14 @@ def run(config):
                                        'error = ' + errorfile + '\n' +
                                        'notification = ' + notification + '\n' +
                                        '+IsSleep = 1\n')
-                if inputFile != None:
-                    condorSubmitFile.write('transfer_input_files = ' + inputFile + '\n')
-                if outputFile != None:
-                    condorSubmitFile.write('transfer_output_files = ' + outputFile + '\n')
-                if environment != None:
-                    condorSubmitFile.write('environment = ' + environment + '\n')
-                if arguments != None:
-                    condorSubmitFile.write('Arguments = ' + arguments + '\n')
+                if config.inputFile != None:
+                    condorSubmitFile.write('transfer_input_files = ' + config.inputFile + '\n')
+                if config.outputFile != None:
+                    condorSubmitFile.write('transfer_output_files = ' + config.outputFile + '\n')
+                if config.environment != None:
+                    condorSubmitFile.write('environment = ' + config.environment + '\n')
+                if config.arguments != None:
+                    condorSubmitFile.write('arguments = ' + config.arguments + '\n')
                 condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
                 for j in range(0, int(concurrencyLevel[k]), 1):
                     condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
@@ -342,7 +348,7 @@ def run(config):
         # Create a loop to parse each log file into a summaries directory
         summDir = workingDir + '/' + startTime + '/summaries/'
         os.makedirs(summDir)
-        for l in range(0, runs, 1):
+        for l in range(0, config.runs, 1):
             for k in range(0, len(concurrencyLevel), 1):
 
                 # Initialize empty arrays for data
@@ -427,7 +433,7 @@ def run(config):
                 # Create summary directory structure
                 filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
                 file=open(filePath, 'w')
-                header = "# Test Results for " + executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
+                header = "# Test Results for " + config.executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
                 file.write(header)
                 exeTime=0
                 finTime=0
