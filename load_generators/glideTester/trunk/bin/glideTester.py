@@ -173,7 +173,10 @@ class ArgsParser:
         self.inputFile = None
         self.outputFile = None
         self.environment = None
+        self.getenv = None
         self.arguments = None
+        self.x509userproxy = None
+
         self.concurrency = None
         self.runs = 1
 
@@ -195,14 +198,23 @@ class ArgsParser:
                 arr=val.split(',')
                 newarr=[]
                 for f in arr:
+                    if not os.path.exists(f):
+                        raise RuntimeError, "'%s' is not a valid file"%f
                     newarr.append(os.path.abspath(f))
                 self.inputFile = string.join(newarr,',')
             elif key == 'transfer_output_files':
                 self.outputFile = val
             elif key == 'environment':
                 self.environment = val
+            elif key == 'getenv':
+                self.getenv = val
             elif key == 'arguments':
                 self.arguments = val
+            elif key == 'x509userproxy':
+                #allow empty string
+                if (val!='') and (not os.path.exists(val)):
+                    raise RuntimeError, "'%s' is not a valid proxy"%val
+                self.x509userproxy = val
             elif key == 'concurrency':
                 self.concurrency=val
             elif key == 'runs':
@@ -289,9 +301,14 @@ def run(config):
                     condorSubmitFile.write('transfer_output_files = ' + config.outputFile + '\n')
                 if config.environment != None:
                     condorSubmitFile.write('environment = ' + config.environment + '\n')
+                if config.getenv != None:
+                    condorSubmitFile.write('getenv = ' + config.getenv + '\n')
                 if config.arguments != None:
                     condorSubmitFile.write('arguments = ' + config.arguments + '\n')
-                condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
+                if config.x509userproxy!=None:
+                    condorSubmitFile.write('x509userproxy = ' + config.x509userproxy + '\n\n')
+                else:
+                    condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
                 for j in range(0, int(concurrencyLevel[k]), 1):
                     condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
                     condorSubmitFile.write('Queue\n\n')
