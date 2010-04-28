@@ -73,5 +73,7 @@ templates are provided.
 4/26/10 - Add timed_loop support script
 4/26/10 - Add support for delegateProxy and mySecurityName
 4/26/10 - Fix interoperability with glideinWMS v2_4
+4/27/10 - Add x509userproxy option
+4/27/10 - Code cleanup
 
 
