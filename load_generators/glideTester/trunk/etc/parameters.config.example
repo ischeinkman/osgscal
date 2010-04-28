@@ -1,5 +1,21 @@
-executable=enter_executable_here
-arguments=enter_arguments_here
-transfer_input_files=enter,files,here
+#
+# How many should I run
+#
 concurrency=5 10 100 1000
 runs=1
+
+#
+# Job description 
+#
+executable=enter_executable_here
+arguments=enter_arguments_here
+
+#
+# optional condor_submit parameters
+#
+
+#transfer_input_files=
+#transfer_output_files=
+#environment=
+#getenv=False
+#x509userproxy=service_proxy
