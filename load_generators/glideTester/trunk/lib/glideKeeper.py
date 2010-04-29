@@ -67,7 +67,7 @@ class GlideKeeperThread(threading.Thread):
         self.need_cleanup = False # if never requested more than 0, then no need to do cleanup
 
         self.running_glideins=0
-        self.last_error=None
+        self.errors=[]
 
         ##############################
         self.shutdown=False
@@ -87,7 +87,6 @@ class GlideKeeperThread(threading.Thread):
     # this is the main of the class
     def run(self):
         self.shutdown=False
-        self.last_error=None
         first=True
         while (not self.shutdown) or self.need_cleanup:
             if first:
@@ -122,17 +121,16 @@ class GlideKeeperThread(threading.Thread):
         #to be implemented
         # for now, just try to deadvertize and claim you are done
         # in the future, we need to do better than this (i.e. actually kill the gldieins)
-        self.last_error=None
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
             try:
                 glideinFrontendInterface.deadvertizeAllWork(factory_pool_node,self.glidekeeper_id)
             except RuntimeError, e:
-                self.last_error="Deadvertizing failed: %s"%e
+                self.errors.append((time.time(),"Deadvertizing failed: %s"%e))
             except:
                 tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
                                                 sys.exc_info()[2])
-                self.last_error="Deadvertizing failed: %s"%string.join(tb,'')
+                self.errors.append((time.time(),"Deadvertizing failed: %s"%string.join(tb,'')))
         self.need_cleanup = False
     
     def go_request_glideins(self):
@@ -144,7 +142,7 @@ class GlideKeeperThread(threading.Thread):
           del pool_status
           self.running_glideins=running_glideins
         except:
-          self.last_error="condor_status failed"
+          self.errors.append((time.time(),"condor_status failed"))
           return
 
         # query WMS collector
@@ -222,15 +220,14 @@ class GlideKeeperThread(threading.Thread):
         
         try:
             advertizer.do_advertize()
-            self.last_error=None
         except glideinFrontendInterface.MultiExeError, e:
-            self.last_error="Advertizing failed for %i requests: %s"%(len(e.arr),e)
+            self.errors.append((time.time(),"Advertizing failed for %i requests: %s"%(len(e.arr),e)))
         except RuntimeError, e:
-            self.last_error="Advertizing failed: %s"%e
+            self.errors.append((time.time(),"Advertizing failed: %s"%e))
         except:
             tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
                                         sys.exc_info()[2])
-            self.last_error="Advertizing failed: %s"%string.join(tb,'')
+            self.errors.append((time.time(),"Advertizing failed: %s"%string.join(tb,'')))
 
         
 

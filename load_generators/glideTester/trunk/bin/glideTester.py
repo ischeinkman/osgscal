@@ -331,10 +331,17 @@ def run(config):
                 # Ask the glidekeeper object
                 finished = "false"
                 while finished != "true":
-                    last_error=gktid.last_error
-                    gktid.last_error=None
-                    if last_error!=None:
-                        main_log.write("%s Error: %s\n"%(ctime(),last_error))
+                    errors=[]
+                    while 1:
+                        # since gktid runs in a different thread, pop is the only atomic operation I have
+                        try:
+                            errors.append(gktid.errors.pop())
+                        except IndexError:
+                            break
+                    
+                    errors.reverse()
+                    for err  in errors:
+                        main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
                         
                     numberGlideins = gktid.get_running_glideins()
                     main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
