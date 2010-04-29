@@ -180,6 +180,8 @@ class ArgsParser:
         self.concurrency = None
         self.runs = 1
 
+        self.gfactoryAdditionalConstraint=None
+
         # read the values
         for line in lines:
             line = line.strip()
@@ -219,7 +221,8 @@ class ArgsParser:
                 self.concurrency=val
             elif key == 'runs':
                 self.runs = int(val)
-
+            elif key == 'gfactoryAdditionalConstraint':
+                self.gfactoryAdditionalConstraint=val
         if self.concurrency==None:
             raise RuntimeError, "concurrency was not defined!"
         self.concurrencyLevel = self.concurrency.split()
@@ -236,10 +239,16 @@ def run(config):
     delegated_proxy=None
     if config.delegateProxy:
         delegated_proxy=config.proxyFile
+    
+    if config.gfactoryAdditionalConstraint==None:
+        gfactoryConstraint=config.gfactoryConstraint
+    else:
+        gfactoryConstraint="(%s)&&(%s)"%(config.gfactoryConstraint,config.gfactoryAdditionalConstraint)
+    
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
                                         config.mySecurityName,config.runId,
                                         config.myClassadID,
-                                        [(config.gfactoryNode,config.gfactoryClassadID)],config.gfactoryConstraint,
+                                        [(config.gfactoryNode,config.gfactoryClassadID)],gfactoryConstraint,
                                         config.collectorNode,
                                         delegated_proxy)
     gktid.start()

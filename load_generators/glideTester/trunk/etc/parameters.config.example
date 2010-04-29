@@ -19,3 +19,9 @@ arguments=enter_arguments_here
 #environment=
 #getenv=False
 #x509userproxy=service_proxy
+
+#
+# optional factory parameters
+#
+
+#gfactoryAdditionalConstraint=

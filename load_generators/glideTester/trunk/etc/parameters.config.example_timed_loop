@@ -20,3 +20,9 @@ transfer_input_files=init_script,loop_script,support_files
 #getenv=False
 #x509userproxy=service_proxy
 
+
+#
+# optional factory parameters
+#
+
+#gfactoryAdditionalConstraint=
