@@ -230,6 +230,226 @@ class ArgsParser:
         if self.executable == None:
             raise RuntimeError, "executable was not defined!"
 
+def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
+    import condorMonitor,condorManager
+
+    universe = 'vanilla'
+    transfer_executable = "True"
+    when_to_transfer_output = "ON_EXIT"
+    # disable the check for architecture, we are running a script
+    # only match to our own glideins
+    requirements = '(Arch =!= "fake")&&(%s)'%gktid.glidekeeper_constraint
+    owner = 'Undefined'
+    notification = 'Never'
+
+    # request the glideins
+    # we want 10% more glideins than the concurrency level
+    requestedGlideins = int(concurrencyLevel[k])
+    totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
+    gktid.request_glideins(totalGlideins)
+    main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
+
+    # now we create the directories for each job and a submit file
+    loop = 0
+    dir1 = workingDir + '/concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '/'
+    os.makedirs(dir1)
+    logfile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
+    outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
+    errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
+    filename =  workingDir + "/" + config.executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
+    condorSubmitFile=open(filename, "w")
+    condorSubmitFile.write('universe = ' + universe + '\n' +
+                           'executable = ' + config.executable + '\n' +
+                           'transfer_executable = ' + transfer_executable + '\n' +
+                           'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
+                           'Requirements = ' + requirements + '\n' +
+                           '+Owner = ' + owner + '\n' +
+                           'log = ' + logfile + '\n' +
+                           'output = ' +  outputfile + '\n' +
+                           'error = ' + errorfile + '\n' +
+                           'notification = ' + notification + '\n' +
+                           '+GK_InstanceId = "' + gktid.glidekeeper_id + '"\n' +
+                           '+GK_SessionId = "' + gktid.session_id + '"\n' +
+                           '+IsSleep = 1\n')
+    if config.inputFile != None:
+        condorSubmitFile.write('transfer_input_files = ' + config.inputFile + '\n')
+    if config.outputFile != None:
+        condorSubmitFile.write('transfer_output_files = ' + config.outputFile + '\n')
+    if config.environment != None:
+        condorSubmitFile.write('environment = ' + config.environment + '\n')
+    if config.getenv != None:
+        condorSubmitFile.write('getenv = ' + config.getenv + '\n')
+    if config.arguments != None:
+        condorSubmitFile.write('arguments = ' + config.arguments + '\n')
+    if config.x509userproxy!=None:
+        condorSubmitFile.write('x509userproxy = ' + config.x509userproxy + '\n\n')
+    else:
+        condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
+    for j in range(0, int(concurrencyLevel[k]), 1):
+        condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
+        condorSubmitFile.write('Queue\n\n')
+        loop = loop + 1
+    for i in range(0, int(concurrencyLevel[k]), 1):
+        dir2 = dir1 + 'job' + str(i) + '/'
+        os.makedirs(dir2)
+    condorSubmitFile.close()
+
+    # Need to figure out when we have all the glideins
+    # Ask the glidekeeper object
+    finished = "false"
+    while finished != "true":
+        errors=[]
+        while 1:
+            # since gktid runs in a different thread, pop is the only atomic operation I have
+            try:
+                errors.append(gktid.errors.pop())
+            except IndexError:
+                break
+
+        errors.reverse()
+        for err  in errors:
+            main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
+
+        numberGlideins = gktid.get_running_glideins()
+        main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
+        main_log.flush()
+        sleep(5)
+        if numberGlideins >= requestedGlideins:
+            finished = "true"
+
+    # Now we begin submission and monitoring
+    submission = condorManager.condorSubmitOne(filename)
+    main_log.write("%s %s\n"%(ctime(), "file submitted"))
+    running = "true"
+    while running != "false":
+        check1 = condorMonitor.CondorQ()
+        try:
+            # i actually want to see all jos, not only running ones
+            check1.load('(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id), [("JobStatus","s")])
+            data=check1.fetchStored()
+        except RuntimeError,e:
+            main_log.write("%s %s\n"%(ctime(), "condor_q failed (%s)... ignoring for now"%e))
+
+            main_log.flush()
+            sleep(2)
+            continue # retry the while loop
+        main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
+        main_log.flush()
+        if len(data.keys()) == 0:
+            running = "false"
+            main_log.write("%s %s\n"%(ctime(), "no more running jobs"))
+        else:
+            sleep(10)
+
+def parse_result(config,workingDir,concurrencyLevel):
+    # Create a loop to parse each log file into a summaries directory
+    summDir = workingDir + '/summaries/'
+    os.makedirs(summDir)
+    for l in range(0, config.runs, 1):
+        for k in range(0, len(concurrencyLevel), 1):
+
+            # Initialize empty arrays for data
+            results=[]
+            hours=[]
+            minutes=[]
+            seconds=[]
+            jobStartInfo=[]
+            jobExecuteInfo=[]
+            jobFinishInfo=[]
+            jobStatus=[]
+
+            # Parse each log file
+            logFile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
+            lf = open(logFile, 'r')
+            try:
+                lines1 = lf.readlines()
+            finally:
+                lf.close()
+            jobsSubmitted = 0
+            for line in lines1:
+                line = line.strip()
+                if line[0:1] not in ('0','1','2','3','4','5','6','7','8','9','('):
+                    continue # ignore unwanted text lines
+                arr1=line.split(' ',7)
+                if arr1[5] == "Bytes" or arr1[4] =="Image":
+                    continue
+                if arr1[5] == "submitted":
+                    jobNum = arr1[1].strip('()')
+                    jobStartInfo.append(jobNum)
+                    jobStartInfo.append(arr1[3])
+                    jobsSubmitted=jobsSubmitted+1
+                if arr1[5] == "executing":
+                    jobNum = arr1[1].strip('()')
+                    jobExecuteInfo.append(jobNum)
+                    jobExecuteInfo.append(arr1[3])
+                if arr1[5] == "terminated.":
+                    jobNum = arr1[1].strip('()')
+                    jobFinishInfo.append(jobNum)
+                    jobFinishInfo.append(arr1[3])
+                if arr1[4] == "value":
+                    status=arr1[5].split(')',1)
+                    jobFinishInfo.append(status[0])
+
+            # Set some variables
+            minExeTime=1e20
+            maxExeTime=0
+            minFinTime=1e20
+            maxFinTime=0
+            iter=0
+            for i in range(0, len(jobStartInfo), 2):
+                if jobStartInfo[i] in jobExecuteInfo:
+                    index = jobExecuteInfo.index(jobStartInfo[i])
+                    timeJobStart = jobStartInfo[i + 1]
+                    timeJobExecute = jobExecuteInfo[index + 1]
+                    timeStart = timeJobStart.split(':', 2)
+                    timeExecute = timeJobExecute.split(':', 2)
+                    diffHours = (int(timeExecute[0]) - int(timeStart[0])) * 3600
+                    diffMinutes = (int(timeExecute[1]) - int(timeStart[1])) * 60
+                    diffSeconds = int(timeExecute[2]) - int(timeStart[2])
+                    executeTime = diffHours + diffMinutes + diffSeconds
+                    index2 = jobFinishInfo.index(jobStartInfo[i])
+                    timeJobFinish = jobFinishInfo[index2 + 1]
+                    stat = jobFinishInfo[index2 +2]
+                    timeFinish = timeJobFinish.split(':', 2)
+                    diffHours2 = (int(timeFinish[0]) - int(timeExecute[0])) * 3600
+                    diffMinutes2 = (int(timeFinish[1]) - int(timeExecute[1])) * 60
+                    diffSeconds2 = int(timeFinish[2]) - int(timeExecute[2])
+                    finishTime = diffHours2 + diffMinutes2 + diffSeconds2
+                    resultData = [iter, executeTime, finishTime, stat]
+                    results.append(resultData)
+                    iter = iter + 1
+                    if executeTime > maxExeTime:
+                        maxExeTime = executeTime
+                    if executeTime < minExeTime:
+                        minExeTime = executeTime
+                    if finishTime > maxFinTime:
+                        maxFinTime = finishTime
+                    if finishTime < minFinTime:
+                        minFinTime = finishTime
+
+            # Create summary directory structure
+            filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
+            file=open(filePath, 'w')
+            header = "# Test Results for " + config.executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
+            file.write(header)
+            exeTime=0
+            finTime=0
+            for i in range(0, int(concurrencyLevel[k])):
+                exeTime = exeTime + results[i][1]
+                finTime = finTime + results[i][2]
+                writeData = str(results[i][0]) + '\t' + str(results[i][1]) + '\t' + str(results[i][2]) + '\t' + results[i][3] + '\n'
+                file.write(writeData)
+
+            aveExeTime = exeTime/int(concurrencyLevel[k])
+            aveFinTime = finTime/int(concurrencyLevel[k])
+            file.close()
+
+            filepath = summDir + 'results.txt'
+            file=open(filepath, 'a')
+            times = "Concurrency_Level = " + concurrencyLevel[k] + "\t  Execute_Time_(Ave/Min/Max) = " + str(aveExeTime) + '/' + str(minExeTime) + '/' + str(maxExeTime) + "\t  Finish_Time_(Ave/Min/Max) = " + str(aveFinTime) + "/" + str(minFinTime) + "/" + str(maxFinTime) + '\n'
+            file.write(times)
+            file.close()
+
 def run(config):
     os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
     os.environ['X509_USER_PROXY']=config.proxyFile
@@ -252,9 +472,11 @@ def run(config):
                                         config.collectorNode,
                                         delegated_proxy)
     gktid.start()
-    workingDir = os.getcwd()
-    os.makedirs(workingDir + '/' + startTime)
-    main_log_fname=workingDir + '/' + startTime + '/glideTester.log'
+    startupDir = os.getcwd()
+    workingDir=startupDir + '/' + startTime
+    
+    os.makedirs(workingDir)
+    main_log_fname=workingDir + '/glideTester.log'
     main_log=open(main_log_fname,'w')
 
     try:
@@ -266,15 +488,6 @@ def run(config):
         main_log.write("InstanceID: %s\n"%gktid.glidekeeper_id)
         main_log.write("SessionID:  %s\n\n"%gktid.session_id)
 
-        universe = 'vanilla'
-        transfer_executable = "True"
-        when_to_transfer_output = "ON_EXIT"
-        # disable the check for architecture, we are running a script
-        # only match to our own glideins
-        requirements = '(Arch =!= "fake")&&(%s)'%gktid.glidekeeper_constraint
-        owner = 'Undefined'
-        notification = 'Never'
-
         concurrencyLevel=config.concurrencyLevel
 
         # Create a testing loop for each run
@@ -284,220 +497,12 @@ def run(config):
             # Create a testing loop for each concurrency
             for k in range(0, len(concurrencyLevel), 1):
                 main_log.write("Concurrency %i\n"%int(concurrencyLevel[k]))
-
-                # request the glideins
-                # we want 10% more glideins than the concurrency level
-                requestedGlideins = int(concurrencyLevel[k])
-                totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
-                gktid.request_glideins(totalGlideins)
-                main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
-		
-                # now we create the directories for each job and a submit file
-                workingDir = os.getcwd()
-                loop = 0
-                dir1 = workingDir + '/' + startTime + '/concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '/'
-                os.makedirs(dir1)
-                logfile = workingDir + '/' + startTime + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
-                outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
-                errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
-                filename = config.executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
-                condorSubmitFile=open(filename, "w")
-                condorSubmitFile.write('universe = ' + universe + '\n' +
-                                       'executable = ' + config.executable + '\n' +
-                                       'transfer_executable = ' + transfer_executable + '\n' +
-                                       'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
-                                       'Requirements = ' + requirements + '\n' +
-                                       '+Owner = ' + owner + '\n' +
-                                       'log = ' + logfile + '\n' +
-                                       'output = ' +  outputfile + '\n' +
-                                       'error = ' + errorfile + '\n' +
-                                       'notification = ' + notification + '\n' +
-                                       '+GK_InstanceId = "' + gktid.glidekeeper_id + '"\n' +
-                                       '+GK_SessionId = "' + gktid.session_id + '"\n' +
-                                       '+IsSleep = 1\n')
-                if config.inputFile != None:
-                    condorSubmitFile.write('transfer_input_files = ' + config.inputFile + '\n')
-                if config.outputFile != None:
-                    condorSubmitFile.write('transfer_output_files = ' + config.outputFile + '\n')
-                if config.environment != None:
-                    condorSubmitFile.write('environment = ' + config.environment + '\n')
-                if config.getenv != None:
-                    condorSubmitFile.write('getenv = ' + config.getenv + '\n')
-                if config.arguments != None:
-                    condorSubmitFile.write('arguments = ' + config.arguments + '\n')
-                if config.x509userproxy!=None:
-                    condorSubmitFile.write('x509userproxy = ' + config.x509userproxy + '\n\n')
-                else:
-                    condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
-                for j in range(0, int(concurrencyLevel[k]), 1):
-                    condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
-                    condorSubmitFile.write('Queue\n\n')
-                    loop = loop + 1
-                for i in range(0, int(concurrencyLevel[k]), 1):
-                    dir2 = dir1 + 'job' + str(i) + '/'
-                    os.makedirs(dir2)
-                condorSubmitFile.close()
-
-                # Need to figure out when we have all the glideins
-                # Ask the glidekeeper object
-                finished = "false"
-                while finished != "true":
-                    errors=[]
-                    while 1:
-                        # since gktid runs in a different thread, pop is the only atomic operation I have
-                        try:
-                            errors.append(gktid.errors.pop())
-                        except IndexError:
-                            break
-                    
-                    errors.reverse()
-                    for err  in errors:
-                        main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
-                        
-                    numberGlideins = gktid.get_running_glideins()
-                    main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
-                    main_log.flush()
-                    sleep(5)
-                    if numberGlideins >= requestedGlideins:
-                        finished = "true"
-
-                # Now we begin submission and monitoring
-                submission = condorManager.condorSubmitOne(filename)
-                main_log.write("%s %s\n"%(ctime(), "file submitted"))
-                shutil.move(filename, workingDir + '/' + startTime + '/' + filename)
-                running = "true"
-                while running != "false":
-                    check1 = condorMonitor.CondorQ()
-                    try:
-                        # i actually want to see all jos, not only running ones
-                        check1.load('(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id), [("JobStatus","s")])
-                        data=check1.fetchStored()
-                    except RuntimeError,e:
-                        main_log.write("%s %s\n"%(ctime(), "condor_q failed (%s)... ignoring for now"%e))
-                        
-                        main_log.flush()
-                        sleep(2)
-                        continue # retry the while loop
-                    main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
-                    main_log.flush()
-                    if len(data.keys()) == 0:
-                        running = "false"
-                        main_log.write("%s %s\n"%(ctime(), "no more running jobs"))
-                    else:
-                        sleep(10)
+                process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k)
 
         main_log.write("%s %s\n"%(ctime(), "Done"))
 
         # Now we parse the log files
-
-        # Create a loop to parse each log file into a summaries directory
-        summDir = workingDir + '/' + startTime + '/summaries/'
-        os.makedirs(summDir)
-        for l in range(0, config.runs, 1):
-            for k in range(0, len(concurrencyLevel), 1):
-
-                # Initialize empty arrays for data
-                results=[]
-                hours=[]
-                minutes=[]
-                seconds=[]
-                jobStartInfo=[]
-                jobExecuteInfo=[]
-                jobFinishInfo=[]
-                jobStatus=[]
-
-                # Parse each log file
-                logFile = workingDir + '/' + startTime + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
-                lf = open(logFile, 'r')
-                try:
-                    lines1 = lf.readlines()
-                finally:
-                    lf.close()
-                jobsSubmitted = 0
-                for line in lines1:
-                    line = line.strip()
-                    if line[0:1] not in ('0','1','2','3','4','5','6','7','8','9','('):
-                        continue # ignore unwanted text lines
-                    arr1=line.split(' ',7)
-                    if arr1[5] == "Bytes" or arr1[4] =="Image":
-                        continue
-                    if arr1[5] == "submitted":
-                        jobNum = arr1[1].strip('()')
-                        jobStartInfo.append(jobNum)
-                        jobStartInfo.append(arr1[3])
-                        jobsSubmitted=jobsSubmitted+1
-                    if arr1[5] == "executing":
-                        jobNum = arr1[1].strip('()')
-                        jobExecuteInfo.append(jobNum)
-                        jobExecuteInfo.append(arr1[3])
-                    if arr1[5] == "terminated.":
-                        jobNum = arr1[1].strip('()')
-                        jobFinishInfo.append(jobNum)
-                        jobFinishInfo.append(arr1[3])
-                    if arr1[4] == "value":
-                        status=arr1[5].split(')',1)
-                        jobFinishInfo.append(status[0])
-
-                # Set some variables
-                minExeTime=1e20
-                maxExeTime=0
-                minFinTime=1e20
-                maxFinTime=0
-                iter=0
-                for i in range(0, len(jobStartInfo), 2):
-                    if jobStartInfo[i] in jobExecuteInfo:
-                        index = jobExecuteInfo.index(jobStartInfo[i])
-                        timeJobStart = jobStartInfo[i + 1]
-                        timeJobExecute = jobExecuteInfo[index + 1]
-                        timeStart = timeJobStart.split(':', 2)
-                        timeExecute = timeJobExecute.split(':', 2)
-                        diffHours = (int(timeExecute[0]) - int(timeStart[0])) * 3600
-                        diffMinutes = (int(timeExecute[1]) - int(timeStart[1])) * 60
-                        diffSeconds = int(timeExecute[2]) - int(timeStart[2])
-                        executeTime = diffHours + diffMinutes + diffSeconds
-                        index2 = jobFinishInfo.index(jobStartInfo[i])
-                        timeJobFinish = jobFinishInfo[index2 + 1]
-                        stat = jobFinishInfo[index2 +2]
-                        timeFinish = timeJobFinish.split(':', 2)
-                        diffHours2 = (int(timeFinish[0]) - int(timeExecute[0])) * 3600
-                        diffMinutes2 = (int(timeFinish[1]) - int(timeExecute[1])) * 60
-                        diffSeconds2 = int(timeFinish[2]) - int(timeExecute[2])
-                        finishTime = diffHours2 + diffMinutes2 + diffSeconds2
-                        resultData = [iter, executeTime, finishTime, stat]
-                        results.append(resultData)
-                        iter = iter + 1
-                        if executeTime > maxExeTime:
-                            maxExeTime = executeTime
-                        if executeTime < minExeTime:
-                            minExeTime = executeTime
-                        if finishTime > maxFinTime:
-                            maxFinTime = finishTime
-                        if finishTime < minFinTime:
-                            minFinTime = finishTime
-
-                # Create summary directory structure
-                filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
-                file=open(filePath, 'w')
-                header = "# Test Results for " + config.executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
-                file.write(header)
-                exeTime=0
-                finTime=0
-                for i in range(0, int(concurrencyLevel[k])):
-                    exeTime = exeTime + results[i][1]
-                    finTime = finTime + results[i][2]
-                    writeData = str(results[i][0]) + '\t' + str(results[i][1]) + '\t' + str(results[i][2]) + '\t' + results[i][3] + '\n'
-                    file.write(writeData)
-
-                aveExeTime = exeTime/int(concurrencyLevel[k])
-                aveFinTime = finTime/int(concurrencyLevel[k])
-                file.close()
-
-                filepath = summDir + 'results.txt'
-                file=open(filepath, 'a')
-                times = "Concurrency_Level = " + concurrencyLevel[k] + "\t  Execute_Time_(Ave/Min/Max) = " + str(aveExeTime) + '/' + str(minExeTime) + '/' + str(maxExeTime) + "\t  Finish_Time_(Ave/Min/Max) = " + str(aveFinTime) + "/" + str(minFinTime) + "/" + str(maxFinTime) + '\n'
-                file.write(times)
-                file.close()
-
+        parse_result(config,workingDir,concurrencyLevel)
     finally:
         main_log.write("%s %s\n"%(ctime(), "getting out"))
         main_log.flush()
