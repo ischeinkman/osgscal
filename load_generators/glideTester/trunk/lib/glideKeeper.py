@@ -11,7 +11,7 @@
 
 import threading
 import time, string
-import sys,traceback
+import sys,os,traceback
 
 # these ones come from the glideinWMS package
 # they are located in the lib and frontend subdirectories
@@ -25,7 +25,8 @@ class GlideKeeperThread(threading.Thread):
                  classad_id,
                  factory_pools,factory_constraint,
                  collector_node,
-                 proxy_fname):
+                 proxy_fname,
+                 session_id=None): # session_id should be a uniq string
         threading.Thread.__init__(self)
         # consts
         self.signature_type = "sha1"
@@ -42,6 +43,17 @@ class GlideKeeperThread(threading.Thread):
         glidekeeper_id="%s_%s"%(security_name,instance_id)
         self.glidekeeper_id=glidekeeper_id
 
+        if session_id==None:
+            # should be as unique as possible
+            # in the context of the instance_id
+            session_id="%s_%s"%(time.time(),os.getpid())
+        self.session_id=session_id
+
+        self.instance_constraint='GLIDETESTER_InstanceID=?="%s"'%self.glidekeeper_id
+        self.session_constraint='GLIDETESTER_SessionID=?="%s"'%self.session_id
+
+        self.glidekeeper_constraint="(%s)&&(%s)"%(self.instance_constraint,self.session_constraint)
+        
         # string, what our ads will be identified at the factories
         self.classad_id=classad_id
         
@@ -137,7 +149,7 @@ class GlideKeeperThread(threading.Thread):
         # query job collector
         try:
           pool_status=condorMonitor.CondorStatus()
-          pool_status.load('IS_MONITOR_VM=!=True',[('State','s')])
+          pool_status.load('(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
           running_glideins=len(pool_status.fetchStored())
           del pool_status
           self.running_glideins=running_glideins
@@ -208,7 +220,9 @@ class GlideKeeperThread(threading.Thread):
             glidein_el=glidein_dict[glideid]
             key_obj=key_builder.get_key_obj(self.classad_id,
                                             glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
-            glidein_params={'GLIDEIN_Collector':self.collector_node}
+            glidein_params={'GLIDEIN_Collector':self.collector_node,
+                            'GLIDETESTER_InstanceID':self.glidekeeper_id,
+                            'GLIDETESTER_SessionID':self.session_id}
             glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,

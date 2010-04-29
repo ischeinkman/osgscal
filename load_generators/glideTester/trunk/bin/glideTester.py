@@ -258,11 +258,20 @@ def run(config):
     main_log=open(main_log_fname,'w')
 
     try:
+        main_log.write("Starting at: %s\n\n"%ctime())
+
+        main_log.write("Factory:    %s\n"%config.gfactoryNode)
+        main_log.write("Constraint: %s\n"%gfactoryConstraint)
+        main_log.write("Proxy:      %s\n"%delegated_proxy)
+        main_log.write("InstanceID: %s\n"%gktid.glidekeeper_id)
+        main_log.write("SessionID:  %s\n\n"%gktid.session_id)
+
         universe = 'vanilla'
         transfer_executable = "True"
         when_to_transfer_output = "ON_EXIT"
         # disable the check for architecture, we are running a script
-        requirements = '(Arch =!= "fake")'
+        # only match to our own glideins
+        requirements = '(Arch =!= "fake")&&(%s)'%gktid.glidekeeper_constraint
         owner = 'Undefined'
         notification = 'Never'
 
@@ -303,6 +312,8 @@ def run(config):
                                        'output = ' +  outputfile + '\n' +
                                        'error = ' + errorfile + '\n' +
                                        'notification = ' + notification + '\n' +
+                                       '+GK_InstanceId = "' + gktid.glidekeeper_id + '"\n' +
+                                       '+GK_SessionId = "' + gktid.session_id + '"\n' +
                                        '+IsSleep = 1\n')
                 if config.inputFile != None:
                     condorSubmitFile.write('transfer_input_files = ' + config.inputFile + '\n')
@@ -359,10 +370,11 @@ def run(config):
                     check1 = condorMonitor.CondorQ()
                     try:
                         # i actually want to see all jos, not only running ones
-                        check1.load('JobStatus<3', [])
+                        check1.load('(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id), [("JobStatus","s")])
                         data=check1.fetchStored()
-                    except:
-                        main_log.write("%s %s\n"%(ctime(), "condor_q failed... ignoring for now"))
+                    except RuntimeError,e:
+                        main_log.write("%s %s\n"%(ctime(), "condor_q failed (%s)... ignoring for now"%e))
+                        
                         main_log.flush()
                         sleep(2)
                         continue # retry the while loop

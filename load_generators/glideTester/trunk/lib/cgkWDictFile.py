@@ -30,3 +30,5 @@ class glideKeeperDicts(cvWDictFile.frontendMainDicts):
         self.dicts['frontend_descript'].add('WebURL',final_web_url)
         self.dicts['gridmap'].load(dir=os.path.dirname(gridmap_file),fname=os.path.basename(gridmap_file),
                                    change_self=False,erase_first=True,set_not_changed=False)
+        for k in ('GLIDETESTER_InstanceID','GLIDETESTER_SessionID'):
+            self.dicts['vars'].add_extended(k,"string",None,None,False,True,True)
