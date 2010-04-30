@@ -14,6 +14,7 @@ import string
 import random
 import shutil
 import sys,os,os.path
+import traceback,signal
 import copy
 from time import strftime,sleep,ctime
 
@@ -310,6 +311,9 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         for err  in errors:
             main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
 
+        if not gktid.isAlive():
+            raise RuntimeError, "The glidekeeper thread unexpectedly died!"
+
         numberGlideins = gktid.get_running_glideins()
         main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
         main_log.flush()
@@ -490,24 +494,33 @@ def run(config):
 
         concurrencyLevel=config.concurrencyLevel
 
-        # Create a testing loop for each run
-        for l in range(0, config.runs, 1):
-            main_log.write("Iteration %i\n"%l)
+        try:
+            # Create a testing loop for each run
+            for l in range(0, config.runs, 1):
+                main_log.write("Iteration %i\n"%l)
 
-            # Create a testing loop for each concurrency
-            for k in range(0, len(concurrencyLevel), 1):
-                main_log.write("Concurrency %i\n"%int(concurrencyLevel[k]))
-                process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k)
-
-        main_log.write("%s %s\n"%(ctime(), "Done"))
+                # Create a testing loop for each concurrency
+                for k in range(0, len(concurrencyLevel), 1):
+                    main_log.write("Concurrency %i\n"%int(concurrencyLevel[k]))
+                    process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k)
+            main_log.write("%s %s\n"%(ctime(), "Done"))
+        except:
+            tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
+                                            sys.exc_info()[2])
+            main_log.write("%s %s\n"%(ctime(), "Exception: %s"%string.join(tb,'')))
+            
 
         # Now we parse the log files
         parse_result(config,workingDir,concurrencyLevel)
     finally:
-        main_log.write("%s %s\n"%(ctime(), "getting out"))
+        main_log.write("%s %s\n"%(ctime(), "cleaning, then getting out"))
         main_log.flush()
         gktid.soft_kill()
         gktid.join()
+        # print out any last minute errors
+        for err  in gktid.errors:
+            main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
+        main_log.write("Terminated at: %s\n"%ctime())
     
     return
 
@@ -519,5 +532,10 @@ def main(argv):
     config=ArgsParser(argv)
     run(config)
 
-if __name__ == "__main__":
+def termsignal(signr,frame):
+    raise KeyboardInterrupt, "Received signal %s"%signr
+
+if __name__ == '__main__':
+    signal.signal(signal.SIGTERM,termsignal)
+    signal.signal(signal.SIGQUIT,termsignal)
     main(sys.argv)
