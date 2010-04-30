@@ -1,0 +1,82 @@
+=== Creators ===
+
+Igor Sfiligoi <isfiligoi@ucsd.edu>
+Christopher Theissen <ctheisse@ucsd.edu>
+University of California, San Diego
+Release Date: January 29, 2010
+
+
+=== Description ===
+
+The glideTester is a testing framework aimed at testing
+network facing services by using Grid resources.
+The aim is to perform the same test at different concurrency
+levels in a deterministic way. To fully automate the process,
+glideTester heavily leverages the glideinWMS system for this purpose.
+
+The Condor daemons and the glideinWMS glidein
+factory daemon are used unmodified, and configured and
+operated as suggested by the glideinWMS manuals. All the
+Condor monitoring and debugging features are thus
+available.
+
+The tester daemon instead replaces the VO frontend.
+The reason for reimplementing the frontend is simple;
+the frontend provided with the glideinWMS is designed to be reactive; 
+its modus operandi is to monitor a Condor scheduler for 
+waiting jobs and to request glideins if there are any.
+What we need instead is to first create the needed glidein
+pool and then submit the test jobs.
+
+Our system does not assume anything about the test
+jobs; it only submits them and saves the output. In order to
+prevent data loss, a separate subdirectory is created for each
+instance of the test jobs. Moreover, to keep bookkeeping
+manageable, the job directories are grouped by the
+concurrency level.
+
+Analysis of the output of the tests is beyond the current
+scope of the framework, although may be implemented in
+the future. However, the tester daemon does provide the exit
+status of the test jobs for each completed concurrency level.
+
+
+=== Installation ===
+
+You must have the glidein pool collector and schedd 
+components of glideinWMS installed. 
+
+Install package with instructions can be found at:
+http://www.uscms.org/SoftwareComputing.old/Grid/WMS/glideinWMS/doc.v2/install/
+
+You will also need a glidein factory. Installation for it
+can also be found at the link above, but you should leverage
+an existing gldiein factory, if possible.
+
+Note: The glideinWMS requires incoming network connectivity,
+      so make sure your firewall allows that.
+
+* Basic Installation *
+
+(1) Run createTesterWebStruct.py to create the required 
+frontend files.
+
+(2) Create a glideTester.cfg and a parameters.cfg in /etc; 
+templates are provided.
+
+(3) Run glideTester.py
+
+
+=== Changelog ===
+
+2/26/10 - Added parsing and summaries to glideTester
+4/26/10 - Add timed_loop support script
+4/26/10 - Add support for delegateProxy and mySecurityName
+4/26/10 - Fix interoperability with glideinWMS v2_4
+4/27/10 - Add x509userproxy option
+4/27/10 - Code cleanup
+4/28/10 - Add automatic collection of results from timed_loop.sh
+4/29/10 - Add run-specific factroy constraints
+4/29/10 - Now different runs can run side by side without interference
+4/29/10 - Finally implemented proper cleanup of glideins
+
