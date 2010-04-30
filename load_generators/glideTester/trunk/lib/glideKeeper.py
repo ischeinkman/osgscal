@@ -17,6 +17,7 @@ import sys,os,traceback
 # they are located in the lib and frontend subdirectories
 import glideinFrontendInterface
 import condorMonitor
+import condorExe
 
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
@@ -130,9 +131,7 @@ class GlideKeeperThread(threading.Thread):
         return
 
     def cleanup_glideins(self):
-        #to be implemented
-        # for now, just try to deadvertize and claim you are done
-        # in the future, we need to do better than this (i.e. actually kill the gldieins)
+        # Deadvertize my add, so the factory knows we are gone
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
             try:
@@ -143,6 +142,27 @@ class GlideKeeperThread(threading.Thread):
                 tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
                                                 sys.exc_info()[2])
                 self.errors.append((time.time(),"Deadvertizing failed: %s"%string.join(tb,'')))
+
+        
+        # Stop all the glideins I can see
+        try:
+          pool_status=condorMonitor.CondorStatus()
+          pool_status.load(self.glidekeeper_constraint,[('GLIDEIN_COLLECTOR_NAME','s'),('GLIDEIN_MASTER_NAME','s')])
+          pool_data=pool_status.fetchStored()
+        except:
+          self.errors.append((time.time(),"condor_status failed"))
+
+        for k in pool_data.keys():
+            el=pool_data[k]
+            try:
+                condorExe.exe_cmd("../sbin/condor_off","-master -pool %s %s"%(el['GLIDEIN_COLLECTOR_NAME'],el['GLIDEIN_MASTER_NAME']))
+            except RuntimeError, e:
+                self.errors.append((time.time(),"condor_off failed: %s"%e))
+            except:
+                tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
+                                                sys.exc_info()[2])
+                self.errors.append((time.time(),"condor_off failed: %s"%string.join(tb,'')))
+
         self.need_cleanup = False
     
     def go_request_glideins(self):
