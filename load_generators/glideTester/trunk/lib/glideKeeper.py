@@ -221,7 +221,13 @@ class GlideKeeperThread(threading.Thread):
         else:
             # if we have just 1 or less, ask each the maximum
             more_per_entry=additional_glideins
-        
+       
+        max_glideins=0
+        if self.needed_glideins>0:
+          # put an arbitrary large number
+          # we just want to get there, fast
+          max_glideins=100000
+ 
         # here we have all the data needed to build a GroupAdvertizeType object
         if self.proxy_data==None:
             proxy_arr=None
@@ -247,7 +253,7 @@ class GlideKeeperThread(threading.Thread):
             glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,
-                           more_per_entry,self.needed_glideins*12/10,
+                           more_per_entry,max_glideins,
                            glidein_params,glidein_monitors,
                            key_obj,glidein_params_to_encrypt=None,
                            security_name=self.security_name)
