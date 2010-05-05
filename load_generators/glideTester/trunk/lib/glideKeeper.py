@@ -242,7 +242,8 @@ class GlideKeeperThread(threading.Thread):
                                             glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
             glidein_params={'GLIDEIN_Collector':self.collector_node,
                             'GLIDETESTER_InstanceID':self.glidekeeper_id,
-                            'GLIDETESTER_SessionID':self.session_id}
+                            'GLIDETESTER_SessionID':self.session_id,
+                            'GLIDEIN_Max_Idle':14400}
             glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,
