@@ -32,6 +32,12 @@ cd work
 # run the initialization
 source "../$initScript"
 
+# put in place a protection so it will not run more than twice what expected
+# Twice becuse each test script could run up to the maximum loopSecs
+let "loopLimit=$loopSecs * 2"
+(sleep $loopLimit; echo "Timeout reached"; kill $$)&
+timeoutPID=$!
+
 #env
 failures=0
 successes=0
@@ -50,6 +56,8 @@ while [ "$tnow" -lt "$tend" ]; do
  tnow=`date +%s`
 done
 let duration=$tnow-$tstart
+
+kill $timeoutPID
 
 echo "Termination: `date`"
 echo "Duration: $duration"
