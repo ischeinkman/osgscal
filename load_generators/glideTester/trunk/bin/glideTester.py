@@ -337,6 +337,13 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
             main_log.flush()
             sleep(2)
             continue # retry the while loop
+        except:
+            main_log.write("%s %s\n"%(ctime(), "condor_q failed (reason unknown)... ignoring for now"))
+
+            main_log.flush()
+            sleep(2)
+            continue # retry the while loop
+
         main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
         main_log.flush()
         if len(data.keys()) == 0:
