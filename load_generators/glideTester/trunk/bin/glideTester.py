@@ -269,6 +269,7 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
                            'output = ' +  outputfile + '\n' +
                            'error = ' + errorfile + '\n' +
                            'notification = ' + notification + '\n' +
+                           'periodic_remove = ((JobStatus!=2)&&(JobRunCount>0))||(JobRunCount>1)\n' +
                            '+GK_InstanceId = "' + gktid.glidekeeper_id + '"\n' +
                            '+GK_SessionId = "' + gktid.session_id + '"\n' +
                            '+IsSleep = 1\n')
