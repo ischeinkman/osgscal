@@ -32,6 +32,7 @@ def process_run(work_dir,run,concurrencies):
         tot_files=0
         tot_succ=0
         tot_fail=0
+        parse_fail=0
         for jid in range(cc):
             jfname=os.path.join(dirname,"job%i/concurrency_%i.out"%(jid,cc))
             try:
@@ -49,7 +50,9 @@ def process_run(work_dir,run,concurrencies):
                 tot_fail+=fail
             except:
                 # just warn
-                print "Failed reading/parsing %s"%jfname
+                parse_fail+=1
+        if parse_fail>0: 
+            print "Failed reading/parsing %i/%i files in %s"%(parse_fail,cc,os.path.join(dirname,"job%i"%jid))
 
         if tot_files>0:
             avg_succ=tot_succ/tot_files
