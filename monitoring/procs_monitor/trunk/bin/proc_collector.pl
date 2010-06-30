@@ -50,6 +50,82 @@ sub getUpdateTime
   return \%updateTime;
 }
 
+sub getPss
+{
+  my ($pid) = @_;
+
+  my $pss_tot = 0;
+
+  my $file = "/proc/$pid/cmdline";
+  open(my $IN, "<", $file) or die "Can't read file $file\n";
+
+  my $c = <$IN>;
+  close $IN;
+  if ($c)
+  {
+    chop $c;
+    $c =~ s/\0/ /g;
+  }
+  if (!$c)
+  {
+    return $pss_tot;
+  }
+
+  $file = "/proc/$pid/smaps";
+  open($IN, "<", $file) or die "Can't read file $file\n";
+
+  my @smap = <$IN>;
+  close $IN;
+  #print "@smap";
+
+  my %maps;
+  my $start;
+
+  foreach (@smap)
+  {
+    my @f = split;
+
+    # this collects all smap values, we only need pss
+    if ($f[$#f] eq 'kB')
+    {
+      chop $f[0];
+      $maps{$start}{lc($f[0])} = $f[1];
+    }
+    else
+    {
+      my @addr = split /-/, $f[0];
+      # original converts these hex to int but hex() can't use numbers this big
+      $start = $addr[0];
+      # don't really need to collect any of this to get pss
+
+      #    my $end = $addr[1];
+      #    my $name = "<anonymous>";
+      #    $name = $f[5] if @f > 5;
+        
+      #    $maps{$start}{'end'} = $end;  
+      #    $maps{$start}{'mode'} = $f[1];  
+      #    $maps{$start}{'offset'} = $f[2];  
+      #    $maps{$start}{'device'} = $f[3];  
+      #    $maps{$start}{'inode'} = $f[4];  
+      #    $maps{$start}{'name'} = $name;  
+    }
+  }
+
+  #print Dumper(\%maps);
+  foreach my $key (keys %maps)
+  {
+    if (!exists($maps{$key}{'pss'}))
+    {
+      return $pss_tot;
+    }
+
+    $pss_tot += $maps{$key}{'pss'};
+  }
+
+  return $pss_tot;
+
+}
+
 sub GetProcInfo
 {
   my ($DBprocessname, $ProcRegExp, $ps, $lsof, $myself) = @_;
@@ -76,7 +152,7 @@ sub GetProcInfo
   my @INFO = grep ( /^ *([^ ]+ +){12}$ProcRegExp$/, @INFOPROCS);  
 
   my $ProcIDs;
-  my ($PCPU,$PMEM,$RSS,$VSIZE,$NumberOfProcs,$NumberOfOpenFiles)= ( 0 , 0 , 0 , 0 , 0 ,0 );
+  my ($PSS,$PCPU,$PMEM,$RSS,$VSIZE,$NumberOfProcs,$NumberOfOpenFiles)= ( 0, 0 , 0 , 0 , 0 , 0 ,0 );
 
   # collect process data
   if ( $#INFO >= 0 )
@@ -98,12 +174,18 @@ sub GetProcInfo
         $ProcIDs=$pid;	 
       }
 
+      # collect pss value
+      my $pss;
+      eval {$pss = getPss($pid);};
+      $pss = 0 if $@;
+      
       # accumulate values of each pid to total values of process
       $NumberOfProcs++;      
       $PCPU+=$pcpu;      
       $PMEM+=$pmem;      
       $RSS+=$rss;      
       $VSIZE+=$vsize; 
+      $PSS += $pss;
     }
 
     # collect number of files open by each pid
@@ -115,7 +197,8 @@ sub GetProcInfo
 
   # return hash containing collected data
   return {name => $DBprocessname, pcpu => $PCPU, pmem => $PMEM, vsize => $VSIZE, 
-    rss => $RSS, procs => $NumberOfProcs, files => $NumberOfOpenFiles};
+    rss => $RSS, procs => $NumberOfProcs, files => $NumberOfOpenFiles,
+      pss => $PSS};
 }
 
 sub getTopInfo
@@ -219,6 +302,7 @@ EOF
       <pmem>$proc->{'pmem'}</pmem>
       <vsize>$proc->{'vsize'}</vsize>
       <rss>$proc->{'rss'}</rss>
+      <pss>$proc->{'pss'}</pss>
       <procs>$proc->{'procs'}</procs>
       <files>$proc->{'files'}</files>
     </process>
