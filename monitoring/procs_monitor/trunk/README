@@ -89,3 +89,18 @@ this README: /usr/share/doc/procs_monitor-0.1/
 
 The cron file will be placed in /etc/cron.d.  The syslogger RPM will find the
 first available local facility.
+
+Note on PSS metric
+------------------
+PSS (Proportional Set Size) is a new metric proposed by Matt Mackall that tries to
+more accurately report actual memory usage than what VSIZE or RSS reports.  An
+explanation of PSS can be viewed:
+
+http://www.selenic.com/smem/
+
+and:
+
+http://elmer.web.cern.ch/elmer/memory.html
+
+For this monitor, PSS will correctly report if you either have a kernel >= 2.6.27
+or are using RHEL5.  Otherwise it will simply report 0.
