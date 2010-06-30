@@ -63,7 +63,7 @@ Usage: %s [options] CONFIGFILE
 
     # if wildcard, prepare all metrics
     if confDict['send_type'] == '*':
-      self.sendTypes = ['pcpu', 'pmem', 'vsize', 'rss', 'procs', 'files']
+      self.sendTypes = ['pcpu', 'pmem', 'vsize', 'rss', 'pss', 'procs', 'files']
       return
 
     # otherwise prepare each one listed
@@ -72,7 +72,8 @@ Usage: %s [options] CONFIGFILE
     for type in sendTypes:
       if type == '': continue
       if (type == 'pcpu' or type == 'pmem' or type == 'vsize' or
-            type == 'rss' or type == 'procs' or type == 'files'):
+            type == 'rss' or type == 'pss' or type == 'procs' 
+              or type == 'files'):
         if type not in self.sendTypes:
           self.sendTypes.append(type)
       else:

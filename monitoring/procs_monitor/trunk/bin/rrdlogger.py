@@ -160,6 +160,7 @@ for proc in logger.processes:
         ('pmem','GAUGE',heartbeat,'0','100'),
         ('vsize','GAUGE',heartbeat,'0','U'),
         ('rss','GAUGE',heartbeat,'0','U'),
+        ('pss','GAUGE',heartbeat,'0','U'),
         ('procs','GAUGE',heartbeat,'0','U'),
         ('files','GAUGE',heartbeat,'0','U')]
 
@@ -170,6 +171,7 @@ for proc in logger.processes:
       'pmem': proc['pmem'],
       'vsize': proc['vsize'],
       'rss': proc['rss'],
+      'pss': proc['pss'],
       'procs': proc['procs'],
       'files': proc['files']}
 

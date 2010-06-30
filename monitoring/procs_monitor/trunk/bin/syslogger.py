@@ -125,8 +125,8 @@ syslog.syslog(syslog.LOG_INFO, "Cpu(s): %.1f%%us, %.1f%%sy, %.1f%%id, %.1f%%wa" 
 syslog.syslog(syslog.LOG_INFO, "Total Processes: %i" % (logger.numProcs))
 
 for proc in logger.processes:
-  syslog.syslog(syslog.LOG_INFO, ("%s: %%CPU %.1f and %%Physical Memory %.1f  (Resident Memory (kb): %i  " + 
+  syslog.syslog(syslog.LOG_INFO, ("%s: %%CPU %.1f and %%Physical Memory %.1f  (Resident Memory (kb): %i  Proportional Memory (kb): %i " + 
     ";Total Memory (kb): %i) in %i processes with NumberOfOpenFiles: %i") % (proc['name'], proc['pcpu'], 
-        proc['pmem'], proc['rss'], proc['vsize'], proc['procs'], proc['files']))
+        proc['pmem'], proc['rss'], proc['pss'], proc['vsize'], proc['procs'], proc['files']))
 
 syslog.closelog()
