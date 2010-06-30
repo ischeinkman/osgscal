@@ -129,7 +129,7 @@ def buildCronFile(instdir, options, facility):
     fout.write("%s/bin/syslogger.py -s %i -t %i %s/osgmonitoring.xml\n"
       % (dirpath, facility, THRESHOLD, dirpath))
   if 2 in options:
-    fout.write("%s/bin/txtlogger.py -t %i %s/osgmonitoring.xml %s/procs\n"
+    fout.write("%s/bin/txtlogger.py -t %i %s/osgmonitoring.xml %s/logs\n"
       % (dirpath, THRESHOLD, dirpath, dirpath))
   if 3 in options:
     fout.write("%s/bin/rrdlogger.py -t %i %s/etc/rrdlogger.conf\n"

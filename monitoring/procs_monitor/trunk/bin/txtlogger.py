@@ -79,18 +79,39 @@ if logger.error['flag']:
 if not os.path.isdir(logger.outdir):
   os.mkdir(logger.outdir)
 
+filename = "%s/cpu.log" % logger.outdir
+
+# first write log for machine
+if not os.path.exists(filename):
+  fout = open(filename, 'w')
+  fout.write("#%-12s %6s %6s %6s %6s %6s %6s %6s %6s\n" % ('time', 'usr', 'sys',
+    'idle', 'wait', 'load1', 'load5', 'load15', 'procs'))
+else:
+  fout = open(filename, 'a')
+
+fout.write(" %-12i %6.1f %6.1f %6.1f %6.1f %6.1f %6.1f %6.1f %6i\n" %
+  (logger.updated['UTC']['unixtime'], logger.cpu['user'], logger.cpu['sys'], 
+    logger.cpu['idle'], logger.cpu['wait'], logger.cpu['loadavg']['1'],
+      logger.cpu['loadavg']['5'], logger.cpu['loadavg']['15'], logger.numProcs))
+
+fout.close()
+
 # traverse process fields and update log files
 for proc in logger.processes:
   name = proc['name']
   if (name != None):
     filename = "%s/%s.log" % (logger.outdir, name)
-	
+
     # create log file if not already there
     if not os.path.exists(filename):
       fout = open(filename, 'w')
-      fout.write("#%-12s %5s %5s %5s %5s %5s %5s %5s\n" % ('time', 'pcpu', 'pmem', 'rss', 'pss', 'vsize', 'procs', 'files'))
+      fout.write("#%-12s %5s %5s %5s %5s %5s %5s %5s\n" % ('time', 'pcpu', 'pmem',
+        'rss', 'pss', 'vsize', 'procs', 'files'))
     else:
       fout = open(filename, 'a')
 
-    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i %5i\n" % (logger.updated['UTC']['unixtime'], proc['pcpu'], 
-      proc['pmem'], proc['rss'], proc['pss'], proc['vsize'], proc['procs'], proc['files']))
+    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i %5i\n" % 
+      (logger.updated['UTC']['unixtime'], proc['pcpu'], proc['pmem'], proc['rss'],
+        proc['pss'], proc['vsize'], proc['procs'], proc['files']))
+
+    fout.close()
