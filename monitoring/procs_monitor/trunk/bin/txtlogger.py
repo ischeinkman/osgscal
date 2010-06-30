@@ -88,9 +88,9 @@ for proc in logger.processes:
     # create log file if not already there
     if not os.path.exists(filename):
       fout = open(filename, 'w')
-      fout.write("#%-12s %5s %5s %5s %5s %5s %5s\n" % ('time', 'pcpu', 'pmem', 'rss', 'vsize', 'procs', 'files'))
+      fout.write("#%-12s %5s %5s %5s %5s %5s %5s %5s\n" % ('time', 'pcpu', 'pmem', 'rss', 'pss', 'vsize', 'procs', 'files'))
     else:
       fout = open(filename, 'a')
 
-    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i\n" % (logger.updated['UTC']['unixtime'], proc['pcpu'], 
-      proc['pmem'], proc['rss'], proc['vsize'], proc['procs'], proc['files']))
+    fout.write(" %-12i %5.1f %5.1f %5i %5i %5i %5i %5i\n" % (logger.updated['UTC']['unixtime'], proc['pcpu'], 
+      proc['pmem'], proc['rss'], proc['pss'], proc['vsize'], proc['procs'], proc['files']))

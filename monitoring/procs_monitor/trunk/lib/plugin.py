@@ -154,6 +154,7 @@ def getProcs(root):
                  'pmem': float(proc.findtext('./pmem')),
                  'vsize': int(proc.findtext('./vsize')),
                  'rss': int(proc.findtext('./rss')),
+                 'pss': int(proc.findtext('./pss')),
                  'procs': int(proc.findtext('./procs')),
                  'files': int(proc.findtext('./files'))}
 
