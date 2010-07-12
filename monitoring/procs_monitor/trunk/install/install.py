@@ -89,6 +89,11 @@ def populateDirs(instdir, options):
       "%s/bin/txtlogger.py" % instdir)
     os.chmod("%s/bin/txtlogger.py" % instdir, 0755)
 
+    shutil.copyfile("%s/etc/txtlogger.conf" % ROOT_DIR,
+      "%s/etc/txtlogger.conf" % instdir)
+    updateConfPath("%s/etc/txtlogger.conf" % instdir, instdir)
+    os.chmod("%s/etc/txtlogger.conf" % instdir, 0644)
+
   if 3 in options:
     shutil.copyfile("%s/bin/rrdlogger.py" % ROOT_DIR,
       "%s/bin/rrdlogger.py" % instdir)
@@ -129,8 +134,8 @@ def buildCronFile(instdir, options, facility):
     fout.write("%s/bin/syslogger.py -s %i -t %i %s/osgmonitoring.xml\n"
       % (dirpath, facility, THRESHOLD, dirpath))
   if 2 in options:
-    fout.write("%s/bin/txtlogger.py -t %i %s/osgmonitoring.xml %s/logs\n"
-      % (dirpath, THRESHOLD, dirpath, dirpath))
+    fout.write("%s/bin/txtlogger.py -t %i %s/etc/txtlogger.conf\n"
+      % (dirpath, THRESHOLD, dirpath))
   if 3 in options:
     fout.write("%s/bin/rrdlogger.py -t %i %s/etc/rrdlogger.conf\n"
       % (dirpath, THRESHOLD, dirpath))
