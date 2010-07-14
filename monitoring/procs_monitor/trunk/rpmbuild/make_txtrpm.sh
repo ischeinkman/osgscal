@@ -9,8 +9,11 @@ TMP_DIR=${NAME}-${VERSION}
 
 mkdir -p $TMP_DIR
 cp $ROOT_DIR/bin/txtlogger.py $TMP_DIR
+cp $ROOT_DIR/etc/txtlogger.conf $TMP_DIR
 cp $ROOT_DIR/rpmbuild/txtlogger.spec $TMP_DIR
 cp $ROOT_DIR/LICENSE $TMP_DIR
+
+sed -i 's|^#\(.*\)\$PROC_MON|\1/var/lib/procs_monitor|g' $TMP_DIR/txtlogger.conf
 
 tar -czvf ${NAME}-${VERSION}.tgz ${NAME}-${VERSION}/
 

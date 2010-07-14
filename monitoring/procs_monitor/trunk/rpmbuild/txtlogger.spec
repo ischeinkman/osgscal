@@ -29,12 +29,15 @@ text files
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/local/libexec/procs_monitor
+mkdir -p %{buildroot}/etc/procs_monitor
+
 install -m 755 txtlogger.py %{buildroot}/usr/local/libexec/procs_monitor
+install -m 644 txtlogger.conf %{buildroot}/etc/procs_monitor
 
 %post
 
 if [ "$1" = "1" ] ; then #First install
-  echo "/usr/local/libexec/procs_monitor/txtlogger.py -t 1800 /var/lib/procs_monitor/osgmonitoring.xml /var/lib/procs_monitor/procs" >> /usr/local/libexec/procs_monitor/osgmon_cron.sh
+  echo "/usr/local/libexec/procs_monitor/txtlogger.py -t 1800 /etc/procs_monitor/txtlogger.conf" >> /usr/local/libexec/procs_monitor/osgmon_cron.sh
 fi
 
 %preun
@@ -48,6 +51,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/local/libexec/procs_monitor/txtlogger.py*
+/etc/procs_monitor/txtlogger.conf
 %doc LICENSE
 
 %changelog
