@@ -28,8 +28,8 @@ Configuration
 -------------
 Check the $PROC_MON/etc/osgmonitoring.conf file, uncomment and change any system 
 parameters as necessary.  *Note* if you change the default location of the
-out_file, if you are using the syslogger or text logger you must edit the location
-of the osgmonitoring.xml as well in the osgmon_cron.sh file.  You must also change
+out_file, if you are using the syslogger you must edit the location of the
+osgmonitoring.xml as well in the osgmon_cron.sh file.  You must also change
 this line in any of the config files for the other plugins located in 
 $PROC_MON/etc that you are using.  
 
@@ -44,8 +44,7 @@ osgmonitoring.
 
 Text Logger
 -----------
-To change the output folder location for the log files change the last argument
-in the osgmon_cron.sh file.  *Note* these log files grow indefinitely.
+See $PROC_MON/etc/txtlogger.conf
 
 RRD Logger
 ----------
@@ -67,14 +66,14 @@ send_type is the metric type specified in the zablogger.conf file.
 RPM Install info
 ----------------
 Core RPM:
-procs_monitor-1.0.0-1.noarch.rpm
+procs_monitor-1.1.0-1.noarch.rpm
 
 Plugins:
-procs_monitor_syslogger-1.0.0-1.noarch.rpm
-procs_monitor_txtlogger-1.0.0-1.noarch.rpm
-procs_monitor_rrdlogger-1.0.0-1.noarch.rpm
-procs_monitor_ganglogger-1.0.0-1.noarch.rpm
-procs_monitor_zablogger-1.0.0-1.noarch.rpm
+procs_monitor_syslogger-1.1.0-1.noarch.rpm
+procs_monitor_txtlogger-1.1.0-1.noarch.rpm
+procs_monitor_rrdlogger-1.1.0-1.noarch.rpm
+procs_monitor_ganglogger-1.1.0-1.noarch.rpm
+procs_monitor_zablogger-1.1.0-1.noarch.rpm
 
 Each plugin depends on the core procs_monitor RPM. If installing from RPMs the 
 default file locations are different.
