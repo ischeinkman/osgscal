@@ -22,57 +22,118 @@
 #
 
 
-import sys
+import sys,os
+STARTUP_DIR=sys.path[0]
+sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
+import condorLogParser
 
 def usage():
-    print "Usage: log2timebins.py [-rates|-abs|-all] <logfile> <outfile> [<nrchars>]"
+    print "Usage: log2timebins.py [-rates|-abs|-all] <logfile> [<nrchars>]"
 
+
+class TimeBinEl:
+    def __init__(self,jobs):
+        self.submitted=0
+        self.grid_submitted=0
+        self.started=0
+        self.terminated=0
+        self.aborted=0
+
+        # get abs values of the current job dictionary
+        self.total_jobs=0
+        self.total_idle=0
+        self.total_grid_idle=0
+        self.total_running=0
+
+        for j in jobs:
+            self.total_jobs+=1
+            el=jobs[j]
+            if el[1:]=='00':
+                self.total_idle+=1
+            elif el[1:]=='01':
+                self.total_running+=1
+            elif el[1:]=='27':
+                self.total_grid_idle+=1
+            elif el[1:]=='06':
+                self.total_jobs-=1 # was not cleaned up yet
+
+        return
+
+    def new_job(self):
+        self.submitted+=1
+        self.total_jobs+=1
+        self.total_idle+=1
+
+    def job_grid_submitted(self):
+        self.grid_submitted+=1
+        self.total_grid_idle+=1
+
+    def job_started(self):
+        self.started+=1
+        self.total_idle-=1
+        self.total_running+=1
+        if self.total_grid_idle>0: # assume all jobs are either grid or not
+            self.total_grid_idle-=1
+
+    def job_terminated(self):
+        self.terminated+=1
+        self.total_running-=1
+        self.total_jobs-=1
+        if self.total_grid_idle>0: # assume all jobs are either grid or not
+            self.total_grid_idle-=1
+
+    def job_aborted(self):
+        self.aborted+=1
+        self.total_running-=1
+        self.total_idle+=1
+                
 
 class TimeBins:
     def __init__(self,nr_chars=14):
         self.nr_chars=nr_chars
+        self.jobs={}
         self.bins={}
 
-    def parseLine(self,line):
-        event=line[0:3]
-        dt_start=line.find(')')+2
-        datetime=line[dt_start:(dt_start+self.nr_chars)]
+    def log_callback(self,new_status_str,timestamp_str,job_str):
+        datetime=timestamp_str[:self.nr_chars]
         if self.bins.has_key(datetime):
             el=self.bins[datetime]
         else:
-            el={}
-
-        if el.has_key(event):
-            el[event]+=1
-        else:
-            el[event]=1
+            el=TimeBinEl(self.jobs)
         self.bins[datetime]=el
-                      
 
+        if not self.jobs.has_key(job_str):
+            self.jobs[job_str]=new_status_str
+            el.new_job()
+            return
+            
+        old_status_str=self.jobs[job_str]
+        self.jobs[job_str]=new_status_str
+
+        if new_status_str[1:]==old_status_str[1:]:
+            return # not interested in partial changes
+
+        if new_status_str[1:]=='05':
+            el.job_terminated()
+            del self.jobs[job_str]
+        elif new_status_str[1:]=='01':
+            el.job_started()
+        else:
+            el.job_aborted()
+        return
+    
+def callback(tbins,new_status_str,timestamp_str,job_str):
+    tbins.log_callback(new_status_str,timestamp_str,job_str)
 
 def getBins(logfile,nr_chars=14):
     tbins=TimeBins(nr_chars)
 
-    fd=open(logfile,'r')
-    try:
-        lines=fd.readlines()
-    finally:
-        fd.close()
+    condorLogParser.parseSubmitLogFastRawCallback(logfile,lambda new_status_str,timestamp_str,job_str:callback(tbins,new_status_str,timestamp_str,job_str))
 
-    nr_lines=len(lines)
-    linenr=0
-    while (linenr<(nr_lines-1)): # if last line is a ..., it is of no use
-        if lines[linenr][:3]=='...':
-            # next line us the interesting one
-            linenr+=1
-            tbins.parseLine(lines[linenr])
-            linenr+=1
-        else:
-            linenr+=1
     return tbins.bins
 
 def main(argv):
-    if len(argv)<2:
+    if len(argv)<1:
         usage()
         sys.exit(1)
 
@@ -90,50 +151,23 @@ def main(argv):
         
 
     logfile=argv[0]
-    outfile=argv[1]
-    if len(argv)>=3:
-        bins=getBins(logfile,int(argv[2]))
+    if len(argv)>=2:
+        bins=getBins(logfile,int(argv[1]))
     else:
         bins=getBins(logfile)
 
-    total_jobs=0
-    total_idle=0
-    total_globusidle=0
-    total_running=0
-    fd=open(outfile,"w")
-    try:
-        bin_keys=bins.keys()
-        bin_keys.sort()
-        for k in bin_keys:
-            bin_el=bins[k]
-            submitted=0
-            if bin_el.has_key('000'):
-                submitted=bin_el['000']
-                total_jobs+=submitted
-                total_idle+=submitted
-            submitted_globus=0
-            if bin_el.has_key('027'):
-                submitted_globus=bin_el['027']
-                total_globusidle+=submitted
-            started=0
-            if bin_el.has_key('001'):
-                started=bin_el['001']
-                total_running+=started
-                total_idle-=started
-                total_globusidle-=started
-            terminated=0
-            if bin_el.has_key('005'):
-                terminated=bin_el['005']
-                total_running-=terminated
 
-            if abs==False: # rates only
-                fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i\n"%(k,submitted,submitted_globus,started,terminated))
-            elif rates==False: # abs only
-                fd.write("%s JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,total_jobs,total_idle,total_globusidle,total_running))
-            else: # all
-                fd.write("%s SB: %4i GB: %4i ST: %4i TM: %4i JB: %4i ID: %4i GI: %4i RN: %4i\n"%(k,submitted,submitted_globus,started,terminated,total_jobs,total_idle,total_globusidle,total_running))
-    finally:
-        fd.close()
+    bin_keys=bins.keys()
+    bin_keys.sort()
+    for k in bin_keys:
+        bin_el=bins[k]
+
+        if abs==False: # rates only
+            print "%s SB: %4i GB: %4i ST: %4i TM: %4i AB: %4i"%(k,bin_el.submitted,bin_el.grid_submitted,bin_el.started,bin_el.terminated,bin_el.aborted)
+        elif rates==False: # abs only
+            print "%s JB: %4i ID: %4i GI: %4i RN: %4i"%(k,bin_el.total_jobs,bin_el.total_idle,0,bin_el.total_running)
+        else: # all
+            print "%s SB: %4i GB: %4i ST: %4i TM: %4i JB: %4i ID: %4i GI: %4i RN: %4i AB: %4i"%(k,bin_el.submitted,bin_el.grid_submitted,bin_el.started,bin_el.terminated,bin_el.total_jobs,bin_el.total_idle,bin_el.total_grid_idle,bin_el.total_running, bin_el.aborted)
 
 
 if __name__ == '__main__':
