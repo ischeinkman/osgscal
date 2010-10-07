@@ -333,7 +333,7 @@ for NumberOfJobs in ${Series}; do
    SubDir="${WorkDir}/${SubDirNr}"
    mkdir ${SubDir}
 
-   
+   ljobs=""   
    for JobNr in `seq ${NumberOfJobs}`; do
      cat >> "${JobDag}" <<EOF
 JOB  p${SubDirNr}.${JobNr} job.sub
@@ -341,8 +341,10 @@ VARS p${SubDirNr}.${JobNr} tcluster="${SubDirNr}"
 VARS p${SubDirNr}.${JobNr} tprocess="${JobNr}"
 SCRIPT POST p${SubDirNr}.${JobNr} cleanup.sh ${SubDirNr} ${SubDirNr}.${JobNr} job.config \$RETURN
 EOF
-     jobs="${jobs} p${SubDirNr}.${JobNr}"
+     ljobs="${ljobs} p${SubDirNr}.${JobNr}"
    done
+
+   jobs="${jobs} ${ljobs}"
 
    # this is a for loop, so increase the counter
    let SubDirNr=${SubDirNr}+1
