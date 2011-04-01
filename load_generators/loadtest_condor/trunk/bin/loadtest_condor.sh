@@ -51,6 +51,7 @@ function Usage
    echo "  -clus[ter] <count> : How many jobs should I group per cluster, default=1000"
    echo "  -maxidle <count>   : How many idle jobs are allowed (delay submission else), default=-1 (disabled)"
    echo "  -maxjobs <count>   : How many jobs are allowed in the queue (delay submission else), default=-1 (disabled)"
+   echo "  -proxy  <file name>: Use the provided proxy  (default=no proxy)"
    echo "  -in[file]  <file name> <file size> : Create an input file (default=no file)"
    echo "  -out[file] <file name> <file size> : Create an output file (default=no file)"
 #   echo "  -owners <user_list> : Submit jobs for each and every owner, default=current user"
@@ -68,6 +69,8 @@ NrJobs=10
 ClusterSize=1000
 MaxIdle=-1
 MaxJobs=-1
+
+HaveProxy=0
 
 HaveInFile=0
 HaveOutFile=0
@@ -105,6 +108,11 @@ do case "$1" in
                  ClusterSize="$2";;
     -maxidle)    MaxIdle="$2";;
     -maxjobs)    MaxJobs="$2";;
+
+    -proxy)
+       HaveProxy=1
+       ProxyFile="$2"
+       ;;
 
     -in | -infile)    
        HaveInFile=1
@@ -273,6 +281,11 @@ else
     fi
 fi
 
+if [ "${HaveProxy}" -eq 1 ]; then
+    cat >> "${CondorSubmitFile}" <<EOF
+x509userproxy = ${ProxyFile}
+EOF
+fi
 
 if [ "${HaveInFile}" -eq 1 ]; then
     cat >> "${CondorSubmitFile}" <<EOF
