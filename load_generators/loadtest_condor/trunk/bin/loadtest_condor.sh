@@ -56,6 +56,7 @@ function Usage
    echo "  -out[file] <file name> <file size kb> : Create an output file (default=no file)"
 #   echo "  -owners <user_list> : Submit jobs for each and every owner, default=current user"
    echo "  -workdir <path>     : Where will the work directory be created, default=current dir"
+   echo "  -append <command>   : Append a command to the Condor submit file, use quotes as needed"
 }
 
 ######################################################################
@@ -77,6 +78,8 @@ HaveOutFile=0
 
 #Owners="`id -nu`"
 BaseWorkDir="$PWD"
+
+Appends=()
 
 while [ $# -gt 0 ]
 do case "$1" in
@@ -129,6 +132,9 @@ do case "$1" in
 
 #    -owners)     Owners="$2";;
     -email)      EmailNotification="$2";;
+    -append)
+       Appends[${#Appends[@]}]="$2"
+       ;;
     -h)  Usage; exit 0;;
     *)  (echo "Unknown option $1"; Usage) 1>&2; exit 1
 esac
@@ -221,8 +227,6 @@ if [ $? -ne 0 ]; then
   exit 2
 fi
 
-
-
 ######################################################################
 # Create the job config file
 #
@@ -307,8 +311,14 @@ fi
 cat >> "${CondorSubmitFile}" <<EOF
 log = ${WorkDir}/job.log
 Initialdir  = ${WorkDir}/\$(tcluster)
-queue
 EOF
+
+for ((i=0; $i<${#Appends[@]}; i++))
+do
+ echo "${Appends[$i]}" >> "${CondorSubmitFile}"
+done
+
+echo "queue" >> "${CondorSubmitFile}"
 
 ######################################################################
 # Create the cluster submit files and the dagman file
