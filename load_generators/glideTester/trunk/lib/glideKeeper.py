@@ -10,7 +10,7 @@
 ############################################################
 
 import threading
-import time, string
+import time, string, re
 import sys,os,traceback
 
 # these ones come from the glideinWMS package
@@ -194,7 +194,7 @@ class GlideKeeperThread(threading.Thread):
                 elif glidein_el['attrs']['PubKeyType']=='RSA': # only trust RSA for now
                     try:
                         # augment
-                        glidein_el['attrs']['PubKeyObj']=glideinFrontendInterface.pubCrypto.PubRSAKey(str(string.replace(glidein_el['attrs']['PubKeyValue'],'\\n','\n')))
+                        glidein_el['attrs']['PubKeyObj']=glideinFrontendInterface.pubCrypto.PubRSAKey(str(re.sub(r"\\+n", r"\n", glidein_el['attrs']['PubKeyValue'])))
                         # and add
                         glidein_dict[(factory_pool_node,glidename)]=glidein_el
                     except:
