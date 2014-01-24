@@ -15,9 +15,9 @@ import sys,os,traceback
 
 # these ones come from the glideinWMS package
 # they are located in the lib and frontend subdirectories
-import glideinFrontendInterface
-import condorMonitor
-import condorExe
+from glideinwms.frontend import glideinFrontendInterface
+from glideinwms.lib import condorMonitor
+from glideinwms.lib import condorExe
 
 class GlideKeeperThread(threading.Thread):
     def __init__(self,

@@ -66,9 +66,7 @@ class ArgsParser:
         self.load_config()
 
         # set search path
-        sys.path.append(os.path.join(self.glideinWMSDir,"lib"))
-        sys.path.append(os.path.join(self.glideinWMSDir,"creation/lib"))
-        sys.path.append(os.path.join(self.glideinWMSDir,"frontend"))
+        sys.path.append(os.path.join(self.glideinWMSDir,".."))
 
         self.load_config_dir()
 
@@ -232,7 +230,8 @@ class ArgsParser:
             raise RuntimeError, "executable was not defined!"
 
 def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
-    import condorMonitor,condorManager
+    from glideinwms.lib import condorMonitor
+    from glideinwms.lib import condorManager
 
     universe = 'vanilla'
     transfer_executable = "True"
@@ -466,7 +465,8 @@ def run(config):
     os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
     os.environ['X509_USER_PROXY']=config.proxyFile
     import glideKeeper
-    import condorMonitor,condorManager
+    from glideinwms.lib import condorMonitor
+    from glideinwms.lib import condorManager
 
     delegated_proxy=None
     if config.delegateProxy:

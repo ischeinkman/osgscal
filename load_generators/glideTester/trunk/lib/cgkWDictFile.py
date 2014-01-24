@@ -14,8 +14,9 @@ import os,os.path
 # but needs modules from
 #  glideinWMS/lib
 # as well
-import cvWDictFile,cWDictFile
-import cWConsts
+from glideinwms.creation.lib import cvWDictFile
+from glideinwms.creation.lib import cWDictFile
+from glideinwms.creation.lib import cWConsts
 
 class glideKeeperDicts(cvWDictFile.frontendMainDicts):
     def __init__(self,work_dir,
