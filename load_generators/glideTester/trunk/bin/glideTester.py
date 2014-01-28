@@ -84,6 +84,7 @@ class ArgsParser:
         self.glideinWMSDir=None
         self.configDir=None
         self.proxyFile=None
+        self.pilotFile=None
         self.delegateProxy=False
         self.collectorNode=None
         self.gfactoryNode=None
@@ -114,6 +115,12 @@ class ArgsParser:
                 if not os.path.exists(val):
                     raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
                 self.proxyFile=val
+            elif key=='pilotFile':
+                if not os.path.exists(val):
+                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
+                self.pilotFile=val
+                # if a proxy file is specified, then we definitely want to delegate it
+                self.delegateProxy=True
             elif key=='delegateProxy':
                 self.delegateProxy=eval(val)
             elif key=='collectorNode':
@@ -472,7 +479,12 @@ def run(config):
 
     delegated_proxy=None
     if config.delegateProxy:
-        delegated_proxy=config.proxyFile
+        if config.pilotFile is None:
+            # use the service proxy as a backup solution
+            delegated_proxy=config.proxyFile
+        else:
+            # use the pilto proxy, if available
+            delegated_proxy=config.pilotFile
     
     if config.gfactoryAdditionalConstraint==None:
         gfactoryConstraint=config.gfactoryConstraint
@@ -497,11 +509,12 @@ def run(config):
     try:
         main_log.write("Starting at: %s\n\n"%ctime())
 
-        main_log.write("Factory:    %s\n"%config.gfactoryNode)
-        main_log.write("Constraint: %s\n"%gfactoryConstraint)
-        main_log.write("Proxy:      %s\n"%delegated_proxy)
-        main_log.write("InstanceID: %s\n"%gktid.glidekeeper_id)
-        main_log.write("SessionID:  %s\n\n"%gktid.session_id)
+        main_log.write("Factory:       %s\n"%config.gfactoryNode)
+        main_log.write("Constraint:    %s\n"%gfactoryConstraint)
+        main_log.write("Service Proxy: %s\n"%config.proxyFile)
+        main_log.write("Pilot Proxy:   %s\n"%delegated_proxy)
+        main_log.write("InstanceID:    %s\n"%gktid.glidekeeper_id)
+        main_log.write("SessionID:     %s\n\n"%gktid.session_id)
 
         concurrencyLevel=config.concurrencyLevel
 
