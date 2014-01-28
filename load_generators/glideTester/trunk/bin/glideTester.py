@@ -155,8 +155,10 @@ class ArgsParser:
         self.frontend_dicts=cgkWDictFile.glideKeeperDicts(self.configDir)
         self.frontend_dicts.load()
 
-        self.webURL=self.frontend_dicts.dicts['frontend_descript']['WebURL']
-        self.descriptSignature,self.descriptFile=self.frontend_dicts.dicts['summary_signature']['main']
+        self.groupName=self.frontend_dicts.group_name
+        self.webURL=self.frontend_dicts.main_dicts.dicts['frontend_descript']['WebURL']
+        self.descriptSignature,self.descriptFile=self.frontend_dicts.main_dicts.dicts['summary_signature']['main']
+        self.groupDescriptSignature,self.groupDescriptFile=self.frontend_dicts.main_dicts.dicts['summary_signature']['group_%s'%self.groupName]
 
 
     def load_params(self):
@@ -478,6 +480,7 @@ def run(config):
         gfactoryConstraint="(%s)&&(%s)"%(config.gfactoryConstraint,config.gfactoryAdditionalConstraint)
     
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
+                                        config.groupName,config.groupDescriptFile,config.groupDescriptSignature,
                                         config.mySecurityName,config.runId,
                                         config.myClassadID,
                                         [(config.gfactoryNode,config.gfactoryClassadID)],gfactoryConstraint,

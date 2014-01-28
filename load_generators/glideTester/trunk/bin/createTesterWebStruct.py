@@ -24,8 +24,7 @@ class ArgsParser:
         self.gridmapFile=argv[5]
 
 def run(config):
-    sys.path.append(os.path.join(config.glideinWMSDir,"lib"))
-    sys.path.append(os.path.join(config.glideinWMSDir,"creation/lib"))
+    sys.path.append(os.path.join(config.glideinWMSDir,".."))
     import cgkWDictFile
 
     dicts=cgkWDictFile.glideKeeperDicts(config.workDir,config.webStageDir)

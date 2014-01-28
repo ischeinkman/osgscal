@@ -22,6 +22,7 @@ from glideinwms.lib import condorExe
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
                  web_url,descript_fname,descript_signature,
+                 group_name,group_descript_fname,group_descript_signature,
                  security_name,instance_id,
                  classad_id,
                  factory_pools,factory_constraint,
@@ -38,11 +39,17 @@ class GlideKeeperThread(threading.Thread):
         self.descript_fname=descript_fname
         self.descript_signature=descript_signature
 
+        self.group_name=group_name
+        self.group_descript_fname=group_descript_fname
+        self.group_descript_signature=group_descript_signature
+
         # string, used for identification
         self.security_name=security_name
         self.instance_id=instance_id
         glidekeeper_id="%s_%s"%(security_name,instance_id)
         self.glidekeeper_id=glidekeeper_id
+        client_name="%s.%s"%(glidekeeper_id,self.group_name)
+        self.client_name=client_name
 
         if session_id==None:
             # should be as unique as possible
@@ -135,7 +142,7 @@ class GlideKeeperThread(threading.Thread):
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
             try:
-                glideinFrontendInterface.deadvertizeAllWork(factory_pool_node,self.glidekeeper_id)
+                glideinFrontendInterface.deadvertizeAllWork(factory_pool_node,self.client_name)
             except RuntimeError, e:
                 self.errors.append((time.time(),"Deadvertizing failed: %s"%e))
             except:
@@ -233,10 +240,13 @@ class GlideKeeperThread(threading.Thread):
             proxy_arr=None
         else:
             proxy_arr=[('0',self.proxy_data)]
-        descript_obj=glideinFrontendInterface.FrontendDescriptNoGroup(self.glidekeeper_id,self.glidekeeper_id,
-                                                                      self.web_url,self.descript_fname,
-                                                                      self.signature_type,self.descript_signature,
-                                                                      proxy_arr)
+        descript_obj=glideinFrontendInterface.FrontendDescript(self.client_name,
+                                                               self.glidekeeper_id,self.group_name,
+                                                               self.web_url,self.descript_fname,
+                                                               self.group_descript_fname,
+                                                               self.signature_type,self.descript_signature,
+                                                               self.group_descript_signature,
+                                                               proxy_arr)
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
