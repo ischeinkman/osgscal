@@ -53,6 +53,8 @@ You will also need a glidein factory. Installation for it
 can also be found at the link above, but you should leverage
 an existing gldiein factory, if possible.
 
+Please note that the glideTester uses "0" as the security class name.
+
 Note: The glideinWMS requires incoming network connectivity,
       so make sure your firewall allows that.
 
