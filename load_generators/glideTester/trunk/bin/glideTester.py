@@ -18,7 +18,7 @@ import traceback,signal
 import copy
 from time import strftime,sleep,ctime
 
-startTime=strftime("%Y-%m-%d_%H:%M:%S")
+startTime=strftime("%Y%m%d_%H%M%S")
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
@@ -500,7 +500,7 @@ def run(config):
                                         delegated_proxy)
     gktid.start()
     startupDir = os.getcwd()
-    workingDir=startupDir + '/' + startTime
+    workingDir=startupDir + '/run_' + startTime
     
     os.makedirs(workingDir)
     main_log_fname=workingDir + '/glideTester.log'
