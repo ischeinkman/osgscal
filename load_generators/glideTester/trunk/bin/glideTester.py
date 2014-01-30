@@ -471,7 +471,7 @@ def parse_result(config,workingDir,concurrencyLevel):
             file.close()
 
 def run(config):
-    os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='GSI'
+    os.environ['_CONDOR_SEC_DEFAULT_AUTHENTICATION_METHODS']='FS,GSI'
     os.environ['X509_USER_PROXY']=config.proxyFile
     import glideKeeper
     from glideinwms.lib import condorMonitor
