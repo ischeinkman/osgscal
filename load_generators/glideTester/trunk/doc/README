@@ -44,16 +44,24 @@ status of the test jobs for each completed concurrency level.
 === Installation ===
 
 You must have the glidein pool collector and schedd 
-components of glideinWMS installed. 
+components of glideinWMS installed.
+This package is known to work with v2_7_2 and
+not to be compatible with any v3* version.
 
 Install package with instructions can be found at:
 http://www.uscms.org/SoftwareComputing.old/Grid/WMS/glideinWMS/doc.v2/install/
 
+During configuration, you will have to authorize
+a) The pilot DN in the Collector and Schedd configurations
+b) The factory DN in the Schedd configuration
+c) Disable all VOMS FQAN checking by Condor with the following line in the configuration
+   USE_VOMS_ATTRIBUTES = False
+
 You will also need a glidein factory. Installation for it
 can also be found at the link above, but you should leverage
-an existing gldiein factory, if possible.
-
+an existing glidein factory, if possible.
 Please note that the glideTester uses "0" as the security class name.
+A v3 Factory supporting the v2 protocol should work.
 
 Note: The glideinWMS requires incoming network connectivity,
       so make sure your firewall allows that.
