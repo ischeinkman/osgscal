@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
-# this will have to be changed to xml.etree.ElementTree if python is 2.5 or higher
-import elementtree.ElementTree as ET
-#import xml.etree.ElementTree as ET
+
+try:#If python 2.4
+    import elementtree.ElementTree as ET
+except ImportError: #If higher
+    import xml.etree.ElementTree as ET
 import sys
 import time
 import os
