@@ -35,6 +35,7 @@ function Usage
    echo "  ${ScriptFileName} [options]"
    echo "Where options is any combination of:"
    echo "  -type <universe> [opts] (REQUIRED)"
+   echo "        grid condor schedd.example.com machine1.example.com : Submit HTCondor C jobs"
    echo "        grid gt2 <resource_name> : Submit Grid GT2 jobs"
    echo "        grid gt5 <resource_name> : Submit Grid GRAM5 jobs"
    echo "        grid cream <url> <batch> <queue> : Submit Grid CREAM jobs"
@@ -88,7 +89,11 @@ do case "$1" in
        if [ "$JobUniverse" == "grid" ]; then
          shift
          GridType="$2"
-         if [ "$GridType" == "cream" ]; then
+	 if [ "$GridType" == "condor" ]; then
+	    shift
+	    GridResource="$2 $3"
+	    shift
+         elif [ "$GridType" == "cream" ]; then
 	    shift
             GridResource="$2 $3 $4"
             shift
@@ -267,6 +272,9 @@ if [ "$JobUniverse" == "grid" ]; then
 	    echo "globus_rsl = ${JobRequirements}"  >> "${CondorSubmitFile}"
         elif [ "${GridType}" == "gt5" ]; then
             echo "globus_rsl = ${JobRequirements}"  >> "${CondorSubmitFile}"
+	   # Job requirements mapped to requirements in HTCondor CE
+	elif [ "${GridType}" == "condor" ]; then
+            echo "requirements = ${JobRequirements}"  >> "${CondorSubmitFile}"
 	else
 	    echo "Don't know how to handle requirements for Grid type '${GridType}'" 1>&2
 	    echo "Aborting" 2>&1

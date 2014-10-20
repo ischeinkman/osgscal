@@ -25,6 +25,7 @@ loadtest_condor.sh [options]
 Where options is any combination of:
   -type <universe> [opts] (REQUIRED)
         grid gt2 <resource_name> : Submit Grid GT2 jobs
+	grid condor schedd.example.com machine1.example.com : Submit HTCondor C jobs
         vanilla                  : Submit vanilla jobs
         local                    : Submit local jobs
   -req[uirements] : Requirements of the job
