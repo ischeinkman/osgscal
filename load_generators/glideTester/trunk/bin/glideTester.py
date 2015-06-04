@@ -16,6 +16,7 @@ import shutil
 import sys,os,os.path
 import traceback,signal
 import copy
+import re
 from time import strftime,sleep,ctime
 
 startTime=strftime("%Y%m%d_%H%M%S")
@@ -190,6 +191,8 @@ class ArgsParser:
 
         self.gfactoryAdditionalConstraint=None
 
+        self.additionalClassAds = []
+
         # read the values
         for line in lines:
             line = line.strip()
@@ -231,6 +234,10 @@ class ArgsParser:
                 self.runs = int(val)
             elif key == 'gfactoryAdditionalConstraint':
                 self.gfactoryAdditionalConstraint=val
+            #Adding support for arbitrary ClassAdds
+            # Arbitrart classAds beging with +
+            elif re.match("\+.*", key):
+                self.additionalClassAds.append((key, val))
         if self.concurrency==None:
             raise RuntimeError, "concurrency was not defined!"
         self.concurrencyLevel = self.concurrency.split()
@@ -272,7 +279,7 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
                            'transfer_executable = ' + transfer_executable + '\n' +
                            'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
                            'Requirements = ' + requirements + '\n' +
-                           '+Owner = ' + owner + '\n' +
+         #                  '+Owner = ' + owner + '\n' +
                            'log = ' + logfile + '\n' +
                            'output = ' +  outputfile + '\n' +
                            'error = ' + errorfile + '\n' +
@@ -295,6 +302,11 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         condorSubmitFile.write('x509userproxy = ' + config.x509userproxy + '\n\n')
     else:
         condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
+    #Added support for additional classAdds:
+    for classAdd in config.additionalClassAds:
+        name = classAdd[0]
+        value = classAdd[1]
+        condorSubmitFile.write(name + ' = ' + value +'\n')
     for j in range(0, int(concurrencyLevel[k]), 1):
         condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
         condorSubmitFile.write('Queue\n\n')
