@@ -53,8 +53,8 @@ function Usage
    echo "  -maxidle <count>   : How many idle jobs are allowed (delay submission else), default=-1 (disabled)"
    echo "  -maxjobs <count>   : How many jobs are allowed in the queue (delay submission else), default=-1 (disabled)"
    echo "  -proxy  <file name>: Use the provided proxy  (default=no proxy)"
-   echo "  -in[file]  <file name> <file size kb> : Create an input file (default=no file)"
-   echo "  -out[file] <file name> <file size kb> : Create an output file (default=no file)"
+   echo "  -in[file]  <file name> <file size MB> : Create an input file (default=no file)"
+   echo "  -out[file] <file name> <file size MB> : Create an output file (default=no file)"
 #   echo "  -owners <user_list> : Submit jobs for each and every owner, default=current user"
    echo "  -workdir <path>     : Where will the work directory be created, default=current dir"
    echo "  -append <command>   : Append a command to the Condor submit file, use quotes as needed"
@@ -136,6 +136,9 @@ do case "$1" in
        ;;
 
 #    -owners)     Owners="$2";;
+    -workdir)
+       BaseWorkDir="$2"
+       ;;
     -email)      EmailNotification="$2";;
     -append)
        Appends[${#Appends[@]}]="$2"
