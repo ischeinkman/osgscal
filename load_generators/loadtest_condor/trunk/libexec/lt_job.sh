@@ -34,14 +34,14 @@ GenerateFile()
 {
    gf_FileName=$1
    gf_FileSizeInKB=$2
-   echo "`hostname` Creating file $gf_FileName of $gf_FileSizeInKB KB"
-   dd if=/dev/urandom of=${gf_FileName} bs=1k count=${gf_FileSizeInKB}
+   echo "`hostname` Creating file $gf_FileName of $gf_FileSizeInKB MB"
+   dd if=/dev/zero of=${gf_FileName} bs=1M count=${gf_FileSizeInKB}
    if [ $? -ne 0 ]
       then
-      echo "`hostname` Problem creating file ${gf_FileName} of ${gf_FileSizeInKB} KB" 1>&2
+      echo "`hostname` Problem creating file ${gf_FileName} of ${gf_FileSizeInKB} MB" 1>&2
       exit 2
    else
-      echo "`hostname` Created file ${gf_FileName} of ${gf_FileSize} KB"
+      echo "`hostname` Created file ${gf_FileName} of ${gf_FileSize} MB"
       md5sum $gf_FileName > ${gf_FileName}.md5
    fi
    

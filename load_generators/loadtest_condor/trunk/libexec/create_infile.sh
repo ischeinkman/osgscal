@@ -12,7 +12,7 @@ fi
 filename=$1
 filesize=$2
 
-dd if=/dev/urandom of=$filename bs=1k count=$filesize
+dd if=/dev/zero of=$filename bs=1M count=$filesize
 if [ $? -ne 0 ]; then
     echo "Failed to create $filename" 1>&2
     exit 2
