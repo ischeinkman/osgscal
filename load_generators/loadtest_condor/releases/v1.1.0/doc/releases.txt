@@ -1,6 +1,0 @@
-v1.1.0	Add support for gt2 and cream
-	Add random length
-	Add rates to log2timebins
-
-v1.0.0	First usable release
-

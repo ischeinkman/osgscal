@@ -1,5 +1,0 @@
-executable=timed_loop.sh
-arguments=$(Cluster) $(Process) seconds init_script loop_script
-transfer_input_files=init_script,loop_script,support_files
-concurrency=5 10 20 50
-runs=1
