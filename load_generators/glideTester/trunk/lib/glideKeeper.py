@@ -13,6 +13,10 @@ import threading
 import time, string, re
 import sys,os,traceback
 
+sys.path.append('../bin')
+from ilanrun import ilog
+from ilanrun import dbgp
+
 # these ones come from the glideinWMS package
 # they are located in the lib and frontend subdirectories
 from glideinwms.frontend import glideinFrontendInterface
@@ -29,7 +33,11 @@ class GlideKeeperThread(threading.Thread):
                  collector_node,
                  proxy_fname,
                  session_id=None): # session_id should be a uniq string
+
+        ilog("Initting new GlideKeeperThread.")
+
         threading.Thread.__init__(self)
+
         # consts
         self.signature_type = "sha1"
         self.max_request=100
@@ -39,9 +47,13 @@ class GlideKeeperThread(threading.Thread):
         self.descript_fname=descript_fname
         self.descript_signature=descript_signature
 
+        ilog("Thread web info: \n\tweb_url: %s\n\tdescript_fname: %s\n\tdescript_signature: %s"%(web_url, descript_fname, descript_signature))
+
         self.group_name=group_name
         self.group_descript_fname=group_descript_fname
         self.group_descript_signature=group_descript_signature
+        
+        ilog("Thread group info: \n\tgroup_name: %s\n\tdescript_fname: %s\n\tdescript_signature: %s"%(group_name, group_descript_fname, group_descript_signature))
 
         # string, used for identification
         self.security_name=security_name
@@ -51,19 +63,26 @@ class GlideKeeperThread(threading.Thread):
         client_name="%s.%s"%(glidekeeper_id,self.group_name)
         self.client_name=client_name
 
+        ilog('Thread security info: \n\tsecurity_name: %s\n\tinstance_id: %s\n\tglidekeeper_id: %s\n\tclient_name: %s'%(security_name, instance_id, glidekeeper_id, client_name))
+
         if session_id==None:
             # should be as unique as possible
             # in the context of the instance_id
             session_id="%s_%s"%(time.time(),os.getpid())
         self.session_id=session_id
 
+        ilog('Thread session_id: %s'%session_id)
+
         self.instance_constraint='GLIDETESTER_InstanceID=?="%s"'%self.glidekeeper_id
         self.session_constraint='GLIDETESTER_SessionID=?="%s"'%self.session_id
 
         self.glidekeeper_constraint="(%s)&&(%s)"%(self.instance_constraint,self.session_constraint)
         
+        ilog('Thread glidein constraints: %s'%self.glidekeeper_constraint)
+        
         # string, what our ads will be identified at the factories
         self.classad_id=classad_id
+        ilog('Thread classad_id: %s'%classad_id)
         
         # factory pools is a list of pairs, where
         #  [0] is factory node
@@ -78,6 +97,8 @@ class GlideKeeperThread(threading.Thread):
 
         self.proxy_fname=proxy_fname
         self.reload_proxy() # provides proxy_data
+
+        ilog('Backend info:\n\tfactory_pools: %s\n\tfactory_constraint: %s\n\tcollector_node: %s\n\tproxy_fname: %s'%(dbgp(factory_pools), factory_constraint, collector_node, proxy_fname))
 
         #############################
         
@@ -95,6 +116,7 @@ class GlideKeeperThread(threading.Thread):
     # if you request 0, all the currenty running ones will be killed
     # in all other cases, it is just requesting for more, if appropriate
     def request_glideins(self,needed_glideins):
+        ilog('Requesting %d glidens from thread.'%needed_glideins)
         self.needed_glideins=needed_glideins
 
     # use this for monitoring
@@ -102,6 +124,7 @@ class GlideKeeperThread(threading.Thread):
         return self.running_glideins
 
     def soft_kill(self):
+        ilog('Requesting a soft kill from the thread.')
         self.shutdown=True
         
     # this is the main of the class
@@ -126,21 +149,32 @@ class GlideKeeperThread(threading.Thread):
     ##############
     # INTERNAL
     def reload_proxy(self):
+        ilog('Reloading proxy from fname: %s'%str(self.proxy_fname))
         if self.proxy_fname==None:
             self.proxy_data=None
             return
-        
         proxy_fd=open(self.proxy_fname,'r')
         try:
             self.proxy_data=proxy_fd.read()
+            ilog('Read proxy data: \n\n%s\n'%self.proxy_data)
+            (self.public_cert, self.private_cert) = self._parse_proxy_certs(self.proxy_data)
+            ilog('Parsed proxy data:\nPUBLIC_KEY:\n%s\n\nPRIVATE_KEY:\n%s\n\n'%(self.public_cert, self.private_cert))
         finally:
             proxy_fd.close()
         return
+    
+    def _parse_proxy_certs(self, data):
+        split_data = data.split('\n-')
+        certs = [x.split('-\n')[1] for x in split_data if not 'END' in x and 'CERTIFICATE' in x]
+        return certs 
 
     def cleanup_glideins(self):
+        ilog('Thread is cleaning up glideins.')
+
         # Deadvertize my add, so the factory knows we are gone
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
+            ilog('Deadvertising for node %s'%dbgp(factory_pool_node))
             try:
                 glideinFrontendInterface.deadvertizeAllWork(factory_pool_node,self.client_name)
             except RuntimeError, e:
@@ -152,6 +186,7 @@ class GlideKeeperThread(threading.Thread):
 
         
         # Stop all the glideins I can see
+        ilog('Getting glidein pool status data.')
         try:
           pool_status=condorMonitor.CondorStatus()
           pool_status.load(self.glidekeeper_constraint,[('GLIDEIN_COLLECTOR_NAME','s'),('GLIDEIN_MASTER_NAME','s')])
@@ -161,6 +196,7 @@ class GlideKeeperThread(threading.Thread):
 
         for k in pool_data.keys():
             el=pool_data[k]
+            ilog('Now killing pool with data: (%s -> %s)'%(dbgp(k), dbgp(el)))
             try:
                 condorExe.exe_cmd("../sbin/condor_off","-master -pool %s %s"%(el['GLIDEIN_COLLECTOR_NAME'],el['GLIDEIN_MASTER_NAME']))
             except RuntimeError, e:
@@ -171,32 +207,61 @@ class GlideKeeperThread(threading.Thread):
                 self.errors.append((time.time(),"condor_off failed: %s"%string.join(tb,'')))
 
         self.need_cleanup = False
+        ilog('Finished cleanup.')
     
     def go_request_glideins(self):
+        ilog('Entered go_request_glideins.')
         # query job collector
+        ilog('Checking the condor pool.')
         try:
           pool_status=condorMonitor.CondorStatus()
           pool_status.load('(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
           running_glideins=len(pool_status.fetchStored())
           del pool_status
           self.running_glideins=running_glideins
+          ilog('Found %d glideins in the pool.'%running_glideins)
         except:
           self.errors.append((time.time(),"condor_status failed"))
           return
 
         # query WMS collector
+        ilog('Checking factory glideins.')
         glidein_dict={}
         for factory_pool in self.factory_pools:
             factory_pool_node=factory_pool[0]
             factory_identity=factory_pool[1]
             try:
-                factory_glidein_dict=glideinFrontendInterface.findGlideins(factory_pool_node,factory_identity,self.signature_type,self.factory_constraint,self.proxy_data!=None,get_only_matching=True)
+                if self.proxy_data != None:
+                    full_constraint = self.factory_constraint +' && (PubKeyType=?="RSA") && (GlideinAllowx509_Proxy=!=False)'
+                else:
+                    full_constraint = self.factory_constraint + ' && (GlideinRequirex509_Proxy=!=True)'
+                ilog('Running findGlideins with these params: \n\tpool: %s\n\tident: %s\n\tsigtype: %s\n\tconstraints: %s'%(
+                    str(factory_pool_node),
+                    str(factory_identity),
+                    str(self.signature_type),
+                    str(full_constraint)
+                    #str(self.proxy_data!=None),
+                    #str(True)
+                ))
+                factory_glidein_dict=glideinFrontendInterface.findGlideins(
+                    factory_pool_node,
+                    factory_identity,
+                    self.signature_type,
+                    full_constraint
+                    #self.proxy_data!=None,
+                    #get_only_matching=True
+                )
             except RuntimeError, e:
                 factory_glidein_dict={} # in case of error, treat as there is nothing there
+                ilog('Error from findGlideins: %s'%str(e))
+            ilog('Found %d possible in factory_pool %s'%(len(factory_glidein_dict.keys()), dbgp(factory_pool)))
 
             for glidename in factory_glidein_dict.keys():
+                ilog('Now testing glidein with name %s'%glidename)
                 glidein_el=factory_glidein_dict[glidename]
+                ilog('Glidein stats: \n\n %s \n\n'%dbgp(glidein_el))
                 if not glidein_el['attrs'].has_key('PubKeyType'): # no pub key at all, skip
+                    ilog('%s has no PubKeyType -- skipping.'% glidename)
                     continue
                 elif glidein_el['attrs']['PubKeyType']=='RSA': # only trust RSA for now
                     try:
@@ -204,9 +269,12 @@ class GlideKeeperThread(threading.Thread):
                         glidein_el['attrs']['PubKeyObj']=glideinFrontendInterface.pubCrypto.PubRSAKey(str(re.sub(r"\\+n", r"\n", glidein_el['attrs']['PubKeyValue'])))
                         # and add
                         glidein_dict[(factory_pool_node,glidename)]=glidein_el
+                        ilog('Adding %s to glidein_dict'%glidename)
                     except:
+                        ilog('Hit error when adding %s to glidein_dict'%glidename)
                         continue # skip
                 else: # invalid key type, skip
+                    ilog('%s has invalid PubKeyType -- skipping.'% glidename)
                     continue
 
         nr_entries=len(glidein_dict.keys())
@@ -228,13 +296,16 @@ class GlideKeeperThread(threading.Thread):
         else:
             # if we have just 1 or less, ask each the maximum
             more_per_entry=additional_glideins
-       
+        more_per_entry = int(more_per_entry) + 1
         max_glideins=0
         if self.needed_glideins>0:
           # put an arbitrary large number
           # we just want to get there, fast
           max_glideins=100000
+
+        ilog('The glidein request stats: \n\trunning_glideins: %d\n\tneeded_glideins: %d\n\tadditional_glideins: %d\n\tnr_entries: %d\n\tmore_per_entry: %d'%(running_glideins, self.needed_glideins, additional_glideins, nr_entries, more_per_entry))
  
+        ilog('Building advertiser.')
         # here we have all the data needed to build a GroupAdvertizeType object
         if self.proxy_data==None:
             proxy_arr=None
@@ -246,11 +317,13 @@ class GlideKeeperThread(threading.Thread):
                                                                self.group_descript_fname,
                                                                self.signature_type,self.descript_signature,
                                                                self.group_descript_signature,
-                                                               proxy_arr)
+                                                               []) #proxy_arr)
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
         advertizer=glideinFrontendInterface.MultiAdvertizeWork(descript_obj)
+
+        successful_ads = 0
         for glideid in glidein_dict.keys():
             factory_pool_node,glidename=glideid
             glidein_el=glidein_dict[glideid]
@@ -260,17 +333,55 @@ class GlideKeeperThread(threading.Thread):
                             'GLIDETESTER_InstanceID':self.glidekeeper_id,
                             'GLIDETESTER_SessionID':self.session_id,
                             'GLIDEIN_Max_Idle':14400}
+            glidein_encrypt_params = {
+                'SubmitProxy' : self.proxy_fname, 
+                'SecurityClass' : '0', 
+                'SecurityName' : 't001',
+            }
             glidein_monitors={}
             advertizer.add(factory_pool_node,
                            glidename,glidename,
                            more_per_entry,max_glideins,
                            glidein_params,glidein_monitors,
-                           key_obj,glidein_params_to_encrypt=None,
+                           key_obj,glidein_params_to_encrypt=glidein_encrypt_params,
                            security_name=self.security_name)
+            ilog((
+                'Creating ad:\n'
+                '\tpool: %s\n'
+                '\treq_name: %s\n'
+                '\tglide_name: %s\n'
+                '\tmin_nr: %s\n'
+                '\tmax_run: %s\n'
+                '\tparams: %s\n'
+                '\tmonitors: %s\n'
+                '\tkey_obj: %s\n'
+                '\tenc_params: %s\n'
+                '\tremove_excess_str: False'
+            )%(
+                str(factory_pool_node),
+                str(glidename),
+                str(glidename),
+                str(more_per_entry),
+                str(max_glideins),
+                str(glidein_params),
+                str(glidein_monitors),
+                str(key_obj),
+                str(glidein_encrypt_params)
+            ))
+            ilog('Raw params: \n\n %s\n%s'%(dbgp(advertizer.factory_queue[factory_pool_node][-1][0]), dbgp(advertizer.factory_queue[factory_pool_node][-1][1])))
+            successful_ads += 1
+
+        for factory_pool in self.factory_pools:
+            factory_pool_node=factory_pool[0]
+            factory_identity=factory_pool[1]
+
 
         
         try:
+            ilog('Trying to advertise for queue:\n%s'%dbgp(advertizer.factory_queue, indent=4))
             advertizer.do_advertize()
+            ilog('Successfully advertized %s ads.'%successful_ads)
+            ilog('Queue:\n%s'%dbgp(advertizer.factory_queue, indent=4))
         except glideinFrontendInterface.MultiExeError, e:
             self.errors.append((time.time(),"Advertizing failed for %i requests: %s"%(len(e.arr),e)))
         except RuntimeError, e:
