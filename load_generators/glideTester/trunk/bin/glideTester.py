@@ -24,6 +24,8 @@ startTime=strftime("%Y%m%d_%H%M%S")
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
+from ilanrun import ilog
+from ilanrun import dbgp
 ############################
 # Configuration class
 class ArgsParser:
@@ -73,6 +75,8 @@ class ArgsParser:
 
         self.load_params()
 
+        ilog("Made glideTester: \n\n%s\n"%dbgp(self, 4))
+
     def load_config(self):
         # first load file, so we check it is readable
         fd=open(self.config,'r')
@@ -96,9 +100,10 @@ class ArgsParser:
 
         # read the values
         for line in lines:
-            line=line.strip()
-            if line[0:1] in ('#',''):
-                continue # ignore comments and empty lines
+            #Ignore comments and whitespace
+            line = line.split('#', 1)[0].strip()
+            if line == '':
+                continue
             arr=line.split('=',1)
             if len(arr)!=2:
                 raise RuntimeError,'Invalid config line, missing =: %s'%line
@@ -246,6 +251,8 @@ class ArgsParser:
             raise RuntimeError, "executable was not defined!"
 
 def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
+
+    ilog('Processing concurrency level %s => %s run number %s.\n\tgktid: %s\n\tworkingDir: %s\n\t log: %s'%(str(k), str(concurrencyLevel[k]), str(l), str(gktid), str(workingDir), str(main_log)))
     from glideinwms.lib import condorMonitor
     from glideinwms.lib import condorManager
 
@@ -272,9 +279,10 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
     logfile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
     outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
     errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
-    filename =  workingDir + "/" + config.executable + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
+    filename =  workingDir + "/" + config.executable.replace('/', '__') + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
+    filecontent = ''
     condorSubmitFile=open(filename, "w")
-    condorSubmitFile.write('universe = ' + universe + '\n' +
+    filecontent += ('universe = ' + universe + '\n' +
                            'executable = ' + config.executable + '\n' +
                            'transfer_executable = ' + transfer_executable + '\n' +
                            'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
@@ -289,35 +297,38 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
                            '+GK_SessionId = "' + gktid.session_id + '"\n' +
                            '+IsSleep = 1\n')
     if config.inputFile != None:
-        condorSubmitFile.write('transfer_input_files = ' + config.inputFile + '\n')
+        filecontent += ('transfer_input_files = ' + config.inputFile + '\n')
     if config.outputFile != None:
-        condorSubmitFile.write('transfer_output_files = ' + config.outputFile + '\n')
+        filecontent += ('transfer_output_files = ' + config.outputFile + '\n')
     if config.environment != None:
-        condorSubmitFile.write('environment = ' + config.environment + '\n')
+        filecontent += ('environment = ' + config.environment + '\n')
     if config.getenv != None:
-        condorSubmitFile.write('getenv = ' + config.getenv + '\n')
+        filecontent += ('getenv = ' + config.getenv + '\n')
     if config.arguments != None:
-        condorSubmitFile.write('arguments = ' + config.arguments + '\n')
+        filecontent += ('arguments = ' + config.arguments + '\n')
     if config.x509userproxy!=None:
-        condorSubmitFile.write('x509userproxy = ' + config.x509userproxy + '\n\n')
+        filecontent += ('x509userproxy = ' + config.x509userproxy + '\n\n')
     else:
-        condorSubmitFile.write('x509userproxy = ' + config.proxyFile + '\n\n')
+        filecontent += ('x509userproxy = ' + config.proxyFile + '\n\n')
     #Added support for additional classAdds:
     for classAdd in config.additionalClassAds:
         name = classAdd[0]
         value = classAdd[1]
-        condorSubmitFile.write(name + ' = ' + value +'\n')
+        filecontent += (name + ' = ' + value +'\n')
     for j in range(0, int(concurrencyLevel[k]), 1):
-        condorSubmitFile.write('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
-        condorSubmitFile.write('Queue\n\n')
+        filecontent += ('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
+        filecontent += ('Queue\n\n')
         loop = loop + 1
     for i in range(0, int(concurrencyLevel[k]), 1):
         dir2 = dir1 + 'job' + str(i) + '/'
         os.makedirs(dir2)
+    ilog('Creating condor file %s:\n%s'%(filename, filecontent ))
+    condorSubmitFile.write(filecontent)
     condorSubmitFile.close()
 
     # Need to figure out when we have all the glideins
     # Ask the glidekeeper object
+    ilog('Now waiting until the thread retrieves enough glideins.')
     finished = "false"
     while finished != "true":
         errors=[]
@@ -329,13 +340,16 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
                 break
 
         errors.reverse()
+        if not len(errors) == 0:
+            ilog('Have errors!')
         for err  in errors:
             main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
-
+            ilog('Found an error: %s'%err[1])
         if not gktid.isAlive():
             raise RuntimeError, "The glidekeeper thread unexpectedly died!"
 
         numberGlideins = gktid.get_running_glideins()
+        ilog('Currently have %s running glideins out of %s.'%(numberGlideins, requestedGlideins))
         main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
         main_log.flush()
         sleep(5)
@@ -343,15 +357,18 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
             finished = "true"
 
     # Now we begin submission and monitoring
+    ilog('Got the glideins. Now submitting %s.'%filename)
     submission = condorManager.condorSubmitOne(filename)
     main_log.write("%s %s\n"%(ctime(), "file submitted"))
     running = "true"
     while running != "false":
+        ilog('Running condorQ to get the running jobs.')
         check1 = condorMonitor.CondorQ()
         try:
             # i actually want to see all jos, not only running ones
             check1.load('(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id), [("JobStatus","s")])
             data=check1.fetchStored()
+            ilog('Success!')
         except RuntimeError,e:
             main_log.write("%s %s\n"%(ctime(), "condor_q failed (%s)... ignoring for now"%e))
 
@@ -364,7 +381,7 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
             main_log.flush()
             sleep(2)
             continue # retry the while loop
-
+        ilog('Found %s jobs running.'%len(data.keys()))
         main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
         main_log.flush()
         if len(data.keys()) == 0:
@@ -392,6 +409,10 @@ def parse_result(config,workingDir,concurrencyLevel):
 
             # Parse each log file
             logFile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
+            #TODO: This is just a ductape for if the run fails. 
+            if not os.path.exists(logFile):
+                tmp = open(logFile, 'w')
+                tmp.close()
             lf = open(logFile, 'r')
             try:
                 lines1 = lf.readlines()
