@@ -13,7 +13,10 @@ import threading
 import time, string, re
 import sys,os,traceback
 
+#TODO: Fix
 sys.path.append('../bin')
+sys.path.append('/home/ilan/glideinwms')
+sys.path.insert(0, '/home/ilan/glideinwms')
 from ilanrun import ilog
 from ilanrun import dbgp
 
@@ -22,6 +25,7 @@ from ilanrun import dbgp
 from glideinwms.frontend import glideinFrontendInterface
 from glideinwms.lib import condorMonitor
 from glideinwms.lib import condorExe
+from glideinwms.frontend.glideinFrontendPlugins import proxy_plugins, createCredentialList
 
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
@@ -156,9 +160,7 @@ class GlideKeeperThread(threading.Thread):
         proxy_fd=open(self.proxy_fname,'r')
         try:
             self.proxy_data=proxy_fd.read()
-            ilog('Read proxy data: \n\n%s\n'%self.proxy_data)
             (self.public_cert, self.private_cert) = self._parse_proxy_certs(self.proxy_data)
-            ilog('Parsed proxy data:\nPUBLIC_KEY:\n%s\n\nPRIVATE_KEY:\n%s\n\n'%(self.public_cert, self.private_cert))
         finally:
             proxy_fd.close()
         return
@@ -237,7 +239,7 @@ class GlideKeeperThread(threading.Thread):
                     full_constraint = self.factory_constraint + ' && (GlideinRequirex509_Proxy=!=True)'
                 ilog('Running findGlideins with these params: \n\tpool: %s\n\tident: %s\n\tsigtype: %s\n\tconstraints: %s'%(
                     str(factory_pool_node),
-                    str(factory_identity),
+                    str(None),
                     str(self.signature_type),
                     str(full_constraint)
                     #str(self.proxy_data!=None),
@@ -245,7 +247,7 @@ class GlideKeeperThread(threading.Thread):
                 ))
                 factory_glidein_dict=glideinFrontendInterface.findGlideins(
                     factory_pool_node,
-                    factory_identity,
+                    None, #factory_identity, #TODO: How do we authenticate with the factory? 
                     self.signature_type,
                     full_constraint
                     #self.proxy_data!=None,
@@ -306,22 +308,27 @@ class GlideKeeperThread(threading.Thread):
         ilog('The glidein request stats: \n\trunning_glideins: %d\n\tneeded_glideins: %d\n\tadditional_glideins: %d\n\tnr_entries: %d\n\tmore_per_entry: %d'%(running_glideins, self.needed_glideins, additional_glideins, nr_entries, more_per_entry))
  
         ilog('Building advertiser.')
-        # here we have all the data needed to build a GroupAdvertizeType object
-        if self.proxy_data==None:
-            proxy_arr=None
-        else:
-            proxy_arr=[('0',self.proxy_data)]
+
+        # Note that at the moment the ID is hardcoded to '1' and the security class to '0'.
+        #TODO: Is that right? 
+        proxy_plugin = proxy_plugins['ProxyFirst'] (None, [CredentialShim('1', self.proxy_fname, '0').to_credential()] )
+
+        #TODO: pass the workdir
         descript_obj=glideinFrontendInterface.FrontendDescript(self.client_name,
                                                                self.glidekeeper_id,self.group_name,
                                                                self.web_url,self.descript_fname,
                                                                self.group_descript_fname,
                                                                self.signature_type,self.descript_signature,
                                                                self.group_descript_signature,
-                                                               []) #proxy_arr)
+                                                               x509_proxies_plugin= proxy_plugin)
+        ilog(dbgp(descript_obj))
+
         # reuse between loops might be a good idea, but this will work for now
         key_builder=glideinFrontendInterface.Key4AdvertizeBuilder()
 
         advertizer=glideinFrontendInterface.MultiAdvertizeWork(descript_obj)
+
+        advertizer.renew_and_load_credentials()
 
         successful_ads = 0
         for glideid in glidein_dict.keys():
@@ -333,17 +340,17 @@ class GlideKeeperThread(threading.Thread):
                             'GLIDETESTER_InstanceID':self.glidekeeper_id,
                             'GLIDETESTER_SessionID':self.session_id,
                             'GLIDEIN_Max_Idle':14400}
-            glidein_encrypt_params = {
-                'SubmitProxy' : self.proxy_fname, 
-                'SecurityClass' : '0', 
-                'SecurityName' : 't001',
-            }
             glidein_monitors={}
-            advertizer.add(factory_pool_node,
-                           glidename,glidename,
-                           more_per_entry,max_glideins,
-                           glidein_params,glidein_monitors,
-                           key_obj,glidein_params_to_encrypt=glidein_encrypt_params,
+            advertizer.add(factory_pool=factory_pool_node,
+                           request_name=glidename,
+                           glidein_name=glidename,
+                           min_nr_glideins=more_per_entry,
+                           max_run_glideins=max_glideins,
+                           glidein_params=glidein_params,
+                           glidein_monitors=glidein_monitors,
+                           key_obj=key_obj,
+                           glidein_params_to_encrypt={},
+                           auth_method='grid_proxy', 
                            security_name=self.security_name)
             ilog((
                 'Creating ad:\n'
@@ -366,7 +373,7 @@ class GlideKeeperThread(threading.Thread):
                 str(glidein_params),
                 str(glidein_monitors),
                 str(key_obj),
-                str(glidein_encrypt_params)
+                str({})
             ))
             ilog('Raw params: \n\n %s\n%s'%(dbgp(advertizer.factory_queue[factory_pool_node][-1][0]), dbgp(advertizer.factory_queue[factory_pool_node][-1][1])))
             successful_ads += 1
@@ -392,5 +399,29 @@ class GlideKeeperThread(threading.Thread):
             self.errors.append((time.time(),"Advertizing failed: %s"%string.join(tb,'')))
 
         
-
         
+
+# The GlideinWMS frontend library relies on large nested hashmap called the ElementeMergeDescript to 
+# pass around configuration parameters, such as the proxy information. This class emulates it 
+# enough just to be able to pass the credentials to the library. 
+class CredentialShim:
+    def __init__(self, proxy_id, proxy_fname, security_class, update_frequency = 65535):
+        self.proxy_id = proxy_id
+        self.proxy_fname = proxy_fname
+        self.merged_data = {}
+        self.merged_data['ProxySecurityClasses'] = {proxy_fname : security_class}
+        self.merged_data['ProxyTrustDomains'] = {proxy_fname : 'Any'} #TODO: Is this right?
+        self.merged_data['ProxyTypes'] = {proxy_fname : 'grid_proxy'} 
+        self.merged_data['ProxyKeyFiles'] = {}
+        self.merged_data['ProxyPilotFiles'] = {}
+        self.merged_data['ProxyVMIds'] = {}
+        self.merged_data['ProxyVMTypes'] = {}
+        self.merged_data['ProxyCreationScripts'] = {}
+        self.merged_data['ProxyUpdateFrequency'] = {proxy_fname : update_frequency}
+        self.merged_data['ProxyVMIdFname'] = {}
+        self.merged_data['ProxyVMTypeFname'] = {}
+        self.merged_data['ProxyRemoteUsernames'] = {}
+        self.merged_data['ProxyProjectIds'] = {}
+    
+    def to_credential(self):
+        return glideinFrontendInterface.Credential(self.proxy_id, self.proxy_fname, self)
