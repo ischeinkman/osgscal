@@ -509,6 +509,17 @@ def run(config):
     import glideKeeper
     from glideinwms.lib import condorMonitor
     from glideinwms.lib import condorManager
+    import logging
+    from glideinwms.lib import logSupport
+    #TODO: Allow for log configuration.  
+    logSupport.add_processlog_handler("frontend", "/home/ilan/log",
+                                    'WARN,ERR,INFO,DEBUG', '.log.txt',
+                                    365,
+                                    0,
+                                    10
+    )
+    logSupport.log = logging.getLogger("frontend")
+    logSupport.log.info("Logging initialized")
 
     delegated_proxy=None
     if config.delegateProxy:
