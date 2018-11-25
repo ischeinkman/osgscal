@@ -217,7 +217,7 @@ class GlideKeeperThread(threading.Thread):
         ilog('Checking the condor pool.')
         try:
           pool_status=condorMonitor.CondorStatus()
-          pool_status.load('(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
+          pool_status.load()#'(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
           running_glideins=len(pool_status.fetchStored())
           del pool_status
           self.running_glideins=running_glideins
@@ -341,6 +341,7 @@ class GlideKeeperThread(threading.Thread):
                             'GLIDETESTER_SessionID':self.session_id,
                             'GLIDEIN_Max_Idle':14400}
             glidein_monitors={}
+            advertizer.add_global(factory_pool=factory_pool_node, request_name=glidename, security_name=self.security_name, key_obj=key_obj)
             advertizer.add(factory_pool=factory_pool_node,
                            request_name=glidename,
                            glidein_name=glidename,
@@ -386,6 +387,7 @@ class GlideKeeperThread(threading.Thread):
         
         try:
             ilog('Trying to advertise for queue:\n%s'%dbgp(advertizer.factory_queue, indent=4))
+            advertizer.do_global_advertize()
             advertizer.do_advertize()
             ilog('Successfully advertized %s ads.'%successful_ads)
             ilog('Queue:\n%s'%dbgp(advertizer.factory_queue, indent=4))

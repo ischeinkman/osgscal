@@ -32,6 +32,19 @@ def run(config):
     dicts.create_dirs()
     dicts.save()
 
+    # The V3 factory uses curl to download files from the web struct path. 
+    # Curl will attempt to first go to the raw webStageDir root for some reason,
+    # which in httpd by default will attempt to create the directory listing page.
+    # Generally this is blocked, returning a HTTP 403:Forbidden error, which then
+    # errors the ad in the factory. 
+    # To circumvent this we create an empty index file at the web stage dir root.
+    index_path = os.path.join(config.webStageDir, "index.html")
+    if not (os.path.exists(index_path) and os.path.isfile(index_path)):
+        index_file = open(index_path, 'w')
+        index_file.write(' ')
+        index_file.flush()
+        index_file.close()
+
     print "Created config files in %s\n"%dicts.work_dir
     print "Web files in %s"%dicts.stage_dir
     print "If needed, move them so they are accessible from\n  %s"%config.webURL
