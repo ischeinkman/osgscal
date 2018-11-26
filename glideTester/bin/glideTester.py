@@ -141,6 +141,8 @@ class ArgsParser:
                 self.myClassadID=val
             elif key=='mySecurityName':
                 self.mySecurityName=val
+            elif key.startswith('webstruct'):
+                continue
             else:
                 raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
 

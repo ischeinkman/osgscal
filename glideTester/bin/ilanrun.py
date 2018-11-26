@@ -24,11 +24,62 @@ def ilog(line):
 
 
 
-from createTesterWebStruct import run, ArgsParser
-
 import sys
 import os 
 import shutil
+
+
+
+def _parse_old_argv(builder, argv):
+    if len(argv) !=6:
+        raise RuntimeError, "Need 5 parameters: glideinWMSDir workDir webURL webStageDir gridmapFile"
+    builder.glideinWMSDir=argv[1]
+    builder.workDir=argv[2]
+    builder.webURL=argv[3]
+    builder.webStageDir=argv[4]
+    builder.gridmapFile=argv[5]
+
+
+def _parse_new_argv(builder, argv):
+
+    valid_flags = ['--clean']
+
+    valid_kv_settings = [
+        '--cfg', '-cfg', '--config', 
+        '--workdir',
+        '--webstagedir', 
+        '--glideinwmsdir', 
+        '--gridmapfile', '--mapfile', '--gridmap',
+        '-url', '--weburl', '--url'
+    ]
+    
+    # Our flags are not case sensitive; first, remove the program's name, then
+    # map them into the correct format.
+    normed_argv = list( map(lambda arg: arg.strip().lower() if arg.startswith('--') else arg, argv[1:]) )
+    flags = _parse_flags(normed_argv, valid_flags=valid_flags, valid_kv_settings=valid_kv_settings)
+    builder.shouldClean = flags.get('--clean')
+    builder.cfgFile = flags.get('--cfg') or flags.get('--config') or flags.get('-cfg')
+    builder.workDir = flags.get('--workdir')
+    builder.webStageDir = flags.get('--webstagedir')
+    builder.glideinWMSDir = flags.get('--glideinwmsdir')
+    builder.gridmapFile = flags.get('--gridmapfile') or flags.get('--gridmap') or flags.get('--mapfile')
+    builder.webURL = flags.get('--weburl') or flags.get('--url') or flags.get('-url')
+
+def _parse_flags(args, valid_flags = None, valid_kv_settings = None, key_marker = '--'):
+    retval = {}
+    idx = 0
+    while idx + 1 < len(args):
+        key = args[idx]
+        assert(key.startswith(key_marker))
+        next_item = args[idx + 1]
+        if next_item.startswith(key_marker):
+            assert(valid_flags is None or key in valid_flags)
+            retval[key] = True 
+        else:
+            assert(valid_kv_settings is None or key in valid_kv_settings)
+            retval[key] = next_item
+            idx += 1
+    return retval
 
 
 class WebStructBuilder:
@@ -43,69 +94,23 @@ class WebStructBuilder:
             ")"
         )%(str(self.glideinWMSDir), str(self.gridmapFile), str(self.webURL), str(self.workDir), str(self.webStageDir))
 
-    def __init__(self, argv) :
+    def __init__(self) :
         self.glideinWMSDir = None
         self.workDir = None
         self.webStageDir = None
         self.webURL = None
         self.gridmapFile = None
-        self.shouldClean = False
+        self.shouldClean = None
+        self.cfgFile = None
 
+    def load_argv(self, argv):
         if not any(map(lambda a : '--' in a, argv)):
-            #By default, use the original ordering. 
-            if len(argv) !=6:
-                raise RuntimeError, "Need 5 parameters: glideinWMSDir workDir webURL webStageDir gridmapFile"
-            else:
-                self.glideinWMSDir=argv[1]
-                self.workDir=argv[2]
-                self.webURL=argv[3]
-                self.webStageDir=argv[4]
-                self.gridmapFile=argv[5]
+            _parse_old_argv(self, argv)
             return 
 
-        if '--ilan' in argv:
-            self._loadIlanDefaults()
-            return 
-        
-        cfgFile = None 
-        idx = 1
-        while idx < len(argv):
-            flag = argv[idx].strip().lower()
-            if flag == '--clean':
-                self.shouldClean = True
-            elif flag == '--cfg':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "Could not find argument after %s!"%argv[idx-1]
-                cfgFile = argv[idx]
-            elif flag == '--glideinwmsdir':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "could not find argument after %s!"%argv[idx-1]
-                self.glideinWMSDir = argv[idx]
-            elif flag == '--gridmapfile':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "could not find argument after %s!"%argv[idx-1]
-                self.gridmapFile = argv[idx]
-            elif flag == '--weburl':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "Could not find argument after %s!"%argv[idx-1]
-                self.webURL = argv[idx]
-            elif flag == '--workdir':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "Could not find argument after %s!"%argv[idx-1]
-                self.workDir = argv[idx]
-            elif flag == '--webstagedir':
-                idx += 1
-                if idx >= len(argv):
-                    raise RuntimeError, "Could not find argument after %s!"%argv[idx-1]
-                self.webStageDir = argv[idx]
-            idx += 1
-        if not self._isPopulated() and cfgFile is not None:
-            self._loadCfgFile(cfgFile)
+        _parse_new_argv(self, argv)
+        if not self._isPopulated() and self.cfgFile is not None:
+            self._loadCfgFile(self.cfgFile)
         ilog('Created Ilan WebStructBuilder: %s'%str(self))
 
         
@@ -113,22 +118,36 @@ class WebStructBuilder:
         return self.glideinWMSDir != None and self.gridmapFile != None and self.webURL != None and self.webStageDir != None and self.workDir != None
 
     def _loadCfgFile(self, cfgFile):
+
         #Only load the file if we both can and need to 
         if self._isPopulated():
             return 
         if cfgFile is None:
             raise RuntimeError, "Tried loading cfg from None path!"
-
-        #Load and parse the file
         import os 
         if not os.path.exists(cfgFile):
-            raise RuntimeError, "Passed in CFG file %s does not exist!"%cfgFile
-        fileObj = open(cfgFile, 'r')
-        raw = fileObj.read()
-        lines = raw.split('\n')
-        noComments = [l.split('#', 2)[0] for l in lines]
-        rawPairs = [l.split('=', 2) for l in noComments if '=' in l]
-        pairs = dict([(p[0].strip().lower(), p[1].strip()) for p in rawPairs if len(p) == 2])
+            raise RuntimeError, "Passed in config file %s does not exist!"%cfgFile
+        
+        # The file should be a simple commented key=value file; parse it as such.
+        cur_path = os.path.dirname(os.path.abspath(__file__))
+        sys.path.append(os.path.join(cur_path,"../lib"))
+        from KeyValueConfig import KeyValueConfig, parse_kv_file
+        conf = parse_kv_file(cfgFile)
+
+        # We are not case-sensitive in the keys.
+        pairs = dict( map( lambda kv: (kv[0].lower(), kv[1]), conf.settings.items() ) )
+
+        # We allow a key-value config file to add a prefix to the web struct's settings
+        # to distinguish them from other runtime settings. If the prefix is used, get the relevant 
+        # pairs and strip the prefix.
+        key_prefix = 'webstruct.'
+        if any(map(lambda key : key.startswith(key_prefix), pairs.keys())):
+            print('Got prefixed items.')
+            relevant_pairs = filter(lambda kv: kv[0].startswith(key_prefix), pairs.items())
+            print('Relevant pairs: %s'%(str(relevant_pairs)))
+            pairs = dict( map(lambda kv: (kv[0][len(key_prefix) : ], kv[1]), relevant_pairs) )
+            print('Stripped pairs: %s'%(str(pairs)))
+
 
         #Populate ourself from the file
         if self.glideinWMSDir is None:
@@ -141,6 +160,8 @@ class WebStructBuilder:
             self.workDir = pairs.get('workdir') or pairs.get('configdir')
         if self.webStageDir is None:
             self.webStageDir = pairs.get('webstagedir')
+        if self.shouldClean is None:
+            self.shouldClean = pairs.get('shouldclean')
 
     def cleanStructs(self):
         import shutil
@@ -154,9 +175,12 @@ class WebStructBuilder:
     def createStructs(self):
         ilog('Running createStructs for builder: %s'%str(self))
         #Import the dictionary file and its dependencies
-        STARTUP_DIR=sys.path[0]
-        sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
-        sys.path.append(os.path.join(self.glideinWMSDir,".."))
+        cur_path = os.path.dirname(os.path.abspath(__file__))
+        sys.path.append(os.path.join(cur_path,"../lib"))
+        print('Adding glideinwmsdir to path: %s'%(str(self.glideinWMSDir)))
+        glideinwms_parent = os.path.join(self.glideinWMSDir, '..')
+        print('Made parent: %s'%(str(glideinwms_parent)))
+        sys.path.append(glideinwms_parent)
         import cgkWDictFile
         try:
             import inspect
@@ -171,6 +195,7 @@ class WebStructBuilder:
         dicts.populate(self.webURL,self.gridmapFile)
         dicts.create_dirs()
         dicts.save()
+        self._create_empty_web_index()
         ilog('Done.')
 
         print "Created config files in %s\n"%dicts.work_dir
@@ -183,17 +208,23 @@ class WebStructBuilder:
         if self.shouldClean:
             self.cleanStructs()
         self.createStructs()
-
-    def _loadIlanDefaults(self):
-        self.shouldClean = True 
-        self.glideinWMSDir = "/home/ilan/glideinwms"
-        self.workDir = '/home/ilan/workDir'
-        self.webStageDir = "/home/ilan/webStageDir"
-        self.webURL = "http://test-001.t2.ucsd.edu/weburla"
-        self.gridmapFile = "/home/ilan/test-gridmapfile"
-
+    
+    def _create_empty_web_index(self):
+        # The V3 factory uses curl to download files from the web struct path. 
+        # Curl will attempt to first go to the raw webStageDir root for some reason,
+        # which in httpd by default will attempt to create the directory listing page.
+        # Generally this is blocked, returning a HTTP 403:Forbidden error, which then
+        # errors the ad in the factory. 
+        # To circumvent this we create an empty index file at the web stage dir root.
+        index_path = os.path.join(self.webStageDir, "index.html")
+        if not (os.path.exists(index_path) and os.path.isfile(index_path)):
+            index_file = open(index_path, 'w')
+            index_file.write(' ')
+            index_file.flush()
+            index_file.close()
 def main(argv):
-    builder = WebStructBuilder(argv)
+    builder = WebStructBuilder()
+    builder.load_argv(argv)
     builder.run()
 
 if __name__ == '__main__':
