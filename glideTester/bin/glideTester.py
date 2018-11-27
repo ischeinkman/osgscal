@@ -24,40 +24,53 @@ startTime=strftime("%Y%m%d_%H%M%S")
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 
-from ilanrun import ilog
-from ilanrun import dbgp
+from logHelper import ilog
+from logHelper import dbgp
+from logHelper import setup_loggers
+from configutils import KeyValueConfig, parse_argv, parse_kv_file, get_config_file_list
 ############################
 # Configuration class
 class ArgsParser:
     def __init__(self,argv):
         # define defaults
-        self.config=os.path.join(STARTUP_DIR,"../etc/glideTester.cfg")
-        self.params=os.path.join(STARTUP_DIR,"../etc/parameters.cfg")
+        #self.config=os.path.join(STARTUP_DIR,"../etc/glideTester.cfg")
+        #self.params=os.path.join(STARTUP_DIR,"../etc/parameters.cfg")
+
+        # glideTester.cfg values
         self.runId=None
+        self.glideinWMSDir = None
+        self.configDir = None
+        self.proxyFile = None
+        self.pilotFile = None
+        self.delegateProxy = None
+        self.collectorNode = None
+        self.gfactoryNode = None
+        self.gfactoryConstraint = None
+        self.gfactoryClassadID = None
+        self.myClassadID = None
+        self.mySecurityName = None
+
+        # parameters.cfg values
+        self.executable = None
+        self.inputFile = None
+        self.outputFile = None
+        self.environment = None
+        self.getenv = None
+        self.arguments = None
+        self.x509userproxy = None
+        self.concurrencyLevel = None
+        self.runs = 1
+        self.gfactoryAdditionalConstraint=None
+        self.additionalClassAds = []
 
         # parse arguments
-        idx=1
-        while idx<len(argv):
-            el=argv[idx]
-            if el=='-config':
-                idx+=1
-                el=argv[idx]
-                if not os.path.exists(el):
-                    raise RuntimeError,"Config file '%s' not found!"%el
-                self.config=el
-            elif el=='-params':
-                idx+=1
-                el=argv[idx]
-                if not os.path.exists(el):
-                    raise RuntimeError,"Params file '%s' not found!"%el
-                self.params=el
-            elif el=='-runId':
-                idx+=1
-                el=argv[idx]
-                self.runId=el
-            else:
-                raise RuntimeError, "Unknown argument '%s' at position %i"%(el, idx)
-            idx+=1
+        valid_keys = ['-config', '-params', '-runId']
+        arg_map = parse_argv(argv[1:], valid_kv_settings=valid_keys)
+        passed_config_path = arg_map.get('-config')
+        passed_params_path = arg_map.get('-params')
+        self.cfg_paths = get_config_file_list(file_name='glideTester.cfg', arg_path=passed_config_path)
+        self.params_path = get_config_file_list(file_name='parameters.cfg', arg_path=passed_params_path)
+        self.runId = arg_map.get('-runId')
 
         # check and fix the attributes
         if self.runId==None:
@@ -66,7 +79,8 @@ class ArgsParser:
             self.runId="u%i"%os.getuid()
         
         # load external values
-        self.load_config()
+        self.load_cfg()
+        self.verify_cfg()
 
         # set search path
         sys.path.append(os.path.join(self.glideinWMSDir,".."))
@@ -77,94 +91,92 @@ class ArgsParser:
 
         ilog("Made glideTester: \n\n%s\n"%dbgp(self, 4))
 
-    def load_config(self):
-        # first load file, so we check it is readable
-        fd=open(self.config,'r')
-        try:
-            lines=fd.readlines()
-        finally:
-            fd.close()
+    def has_cfg(self):
+        if self.glideinWMSDir is None:
+            return False
+        elif self.configDir is None:
+            return False
+        elif self.proxyFile is None:
+            return False
+        elif self.pilotFile is None:
+            return False
+        elif self.delegateProxy is None:
+            return False
+        elif self.collectorNode is None:
+            return False
+        elif self.gfactoryNode is None:
+            return False
+        elif self.gfactoryConstraint is None:
+            return False
+        elif self.gfactoryClassadID is None:
+            return False
+        elif self.myClassadID is None:
+            return False
+        elif self.mySecurityName is None:
+            return False
+        else:
+            return True
+    
+    def load_cfg(self):
+        file_paths = self.cfg_paths
+        for fl in file_paths:
+            if self.has_cfg():
+                return 
+            config = parse_kv_file(fl)
 
-        # reset the values
-        self.glideinWMSDir=None
-        self.configDir=None
-        self.proxyFile=None
-        self.pilotFile=None
-        self.delegateProxy=False
-        self.collectorNode=None
-        self.gfactoryNode=None
-        self.gfactoryConstraint=None
-        self.gfactoryClassadID=None
-        self.myClassadID=None
-        self.mySecurityName=None
+            if self.glideinWMSDir is None:
+                key = 'glideinWMSDir'
+                self.glideinWMSDir = _verify_path(key, config.settings.get(key))
+            if self.configDir is None:
+                key = 'configDir'
+                self.configDir = _verify_path(key, config.settings.get(key))
+            if self.proxyFile is None:
+                key = 'proxyFile'
+                self.proxyFile = _verify_path(key, config.settings.get(key))
+            if self.pilotFile is None:
+                key = 'pilotFile'
+                self.pilotFile = _verify_path(key, config.settings.get(key))
+            if self.delegateProxy is None and config.settings.get('delegateProxy') is not None:
+                self.delegateProxy = eval(config.settings.get('delegateProxy'))
+            if self.collectorNode is None:
+                self.collectorNode = config.settings.get('collectorNode')
+            if self.gfactoryNode is None:
+                self.gfactoryNode = config.settings.get('gfactoryNode')
+            if self.gfactoryConstraint is None:
+                self.gfactoryConstraint = config.settings.get('gfactoryConstraint')
+            if self.gfactoryClassadID is None:
+                self.gfactoryClassadID = config.settings.get('gfactoryClassadID')
+            if self.myClassadID is None:
+                self.myClassadID = config.settings.get('myClassadID')
+            if self.mySecurityName is None:
+                self.mySecurityName = config.settings.get('mySecurityName')
 
-        # read the values
-        for line in lines:
-            #Ignore comments and whitespace
-            line = line.split('#', 1)[0].strip()
-            if line == '':
-                continue
-            arr=line.split('=',1)
-            if len(arr)!=2:
-                raise RuntimeError,'Invalid config line, missing =: %s'%line
-            key=arr[0].strip()
-            val=arr[1].strip()
-            if key=='glideinWMSDir':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
-                self.glideinWMSDir=val
-            elif key=='configDir':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
-                self.configDir=val
-            elif key=='proxyFile':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
-                self.proxyFile=val
-            elif key=='pilotFile':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
-                self.pilotFile=val
-                # if a proxy file is specified, then we definitely want to delegate it
-                self.delegateProxy=True
-            elif key=='delegateProxy':
-                self.delegateProxy=eval(val)
-            elif key=='collectorNode':
-                self.collectorNode=val
-            elif key=='gfactoryNode':
-                self.gfactoryNode=val
-            elif key=='gfactoryConstraint':
-                self.gfactoryConstraint=val
-            elif key=='gfactoryClassadID':
-                self.gfactoryClassadID=val
-            elif key=='myClassadID':
-                self.myClassadID=val
-            elif key=='mySecurityName':
-                self.mySecurityName=val
-            elif key.startswith('webstruct'):
-                continue
-            else:
-                raise RuntimeError, "Invalid config key '%s':%s"%(key,line)
-
+        # If we found a proxy and we don't ahve a specific policy to not delegate,
+        # we delegate to the proxy.
+        if self.delegateProxy is None:
+            self.delegateProxy = self.proxyFile is not None or self.pilotFile is not None
+    def verify_cfg(self):
         # make sure all the needed values have been read,
         # and assign defaults, if needed
         if self.glideinWMSDir==None:
             raise RuntimeError, "glideinWMSDir was not defined!"
-        if self.configDir==None:
+        elif self.configDir==None:
             raise RuntimeError, "configDir was not defined!"
-        if self.proxyFile==None:
+        elif self.proxyFile==None:
             raise RuntimeError, "proxyFile was not defined!"
-        if self.collectorNode==None:
+        elif self.collectorNode==None:
             raise RuntimeError, "collectorNode was not defined!"
-        if self.gfactoryClassadID==None:
+        elif self.gfactoryClassadID==None:
             raise RuntimeError, "gfactoryClassadID was not defined!"
-        if self.myClassadID==None:
+        elif self.myClassadID==None:
             raise RuntimeError, "myClassadID was not defined!"
         # it would be wise to verify the signature here, but will not do just now
         # to be implemented
-        if self.mySecurityName==None:
+        elif self.mySecurityName==None:
             raise RuntimeError, "mySecurityName was not defined!"
-        
+        else:
+            return True
+
     def load_config_dir(self):
         import cgkWDictFile
         self.frontend_dicts=cgkWDictFile.glideKeeperDicts(self.configDir)
@@ -176,81 +188,81 @@ class ArgsParser:
         self.groupDescriptSignature,self.groupDescriptFile=self.frontend_dicts.main_dicts.dicts['summary_signature']['group_%s'%self.groupName]
 
 
+    def has_params(self):
+        self.executable is not None and self.concurrencyLevel is not None
+
+    def verify_params(self):
+        if self.executable is None:
+            raise RuntimeError, "executable was not defined!"
+        elif self.concurrencyLevel is None:
+            raise RuntimeError, "concurrency was not defined!"
+        else:
+            return True
+
+    def load_additional_classads(self, config):
+        for (key, val) in config.settings.iteritems():
+            if key.startswith('+'):
+                self.additionalClassAds.append((key, val))
+
     def load_params(self):
-        # first load the file, so we check it is readable
-        fd = open(self.params, 'r')
-        try:
-            lines = fd.readlines()
-        finally:
-            fd.close()
+        file_paths = self.params_path
 
-        # reset the values
-        self.executable = None
-        self.inputFile = None
-        self.outputFile = None
-        self.environment = None
-        self.getenv = None
-        self.arguments = None
-        self.x509userproxy = None
+        for fl in file_paths:
+            config = parse_kv_file(fl)
+            self.load_additional_classads(config)
+            if self.has_params():
+                continue
 
-        self.concurrency = None
-        self.runs = 1
-
-        self.gfactoryAdditionalConstraint=None
-
-        self.additionalClassAds = []
-
-        # read the values
-        for line in lines:
-            line = line.strip()
-            if line[0:1] in ('#',''):
-                continue # ignore comments and empty lines
-            arr = line.split('=',1)
-            if len(arr) != 2:
-                raise RuntimeError, 'Invalid parameter line, missing =: %s'%line
-            key = arr[0].strip()
-            val = arr[1].strip()
-            if key == 'executable':
-                if not os.path.exists(val):
-                    raise RuntimeError, "%s '%s' is not a valid executable"%(key,val)
-                self.executable = val
-            elif key == 'transfer_input_files':
-                arr=val.split(',')
-                newarr=[]
-                for f in arr:
-                    if not os.path.exists(f):
-                        raise RuntimeError, "'%s' is not a valid file"%f
-                    newarr.append(os.path.abspath(f))
-                self.inputFile = string.join(newarr,',')
-            elif key == 'transfer_output_files':
-                self.outputFile = val
-            elif key == 'environment':
-                self.environment = val
-            elif key == 'getenv':
-                self.getenv = val
-            elif key == 'arguments':
-                self.arguments = val
-            elif key == 'x509userproxy':
-                #allow empty string
-                if (val!='') and (not os.path.exists(val)):
+            if self.executable is None:
+                exec_path = config.settings.get('executable')
+                if exec_path is None:
+                    pass
+                elif not os.path.exists(exec_path):
+                    raise RuntimeError, "%s '%s' is not a valid executable"%('executable',exec_path)
+                else:
+                    self.executable = exec_path
+            if self.inputFile is None:
+                input_files = config.settings.get('transfer_input_files')
+                if input_files is not None:
+                    arr = input_files.split(',')
+                    newarr = []
+                    for f in arr:
+                        if not os.path.exists(f):
+                            raise RuntimeError, "'%s' is not a valid file"%f
+                        newarr.append(os.path.abspath(f))
+                    self.inputFile = string.join(newarr,',')
+            if self.outputFile is None:
+                output_files = config.settings.get('transfer_output_files')
+                if output_files is not None:
+                    self.outputFile = output_files
+            if self.environment is None:
+                self.environment = config.settings.get('environment')
+            if self.getenv is None:
+                self.getenv = config.settings.get('getenv')
+            if self.arguments is None:
+                self.arguments = config.settings.get('arguments')
+            if self.x509userproxy is None:
+                val = config.settings.get('x509userproxy')
+                if (val is not None) and (val!='') and (not os.path.exists(val)):
                     raise RuntimeError, "'%s' is not a valid proxy"%val
                 self.x509userproxy = val
-            elif key == 'concurrency':
-                self.concurrency=val
-            elif key == 'runs':
-                self.runs = int(val)
-            elif key == 'gfactoryAdditionalConstraint':
-                self.gfactoryAdditionalConstraint=val
-            #Adding support for arbitrary ClassAdds
-            # Arbitrart classAds beging with +
-            elif re.match("\+.*", key):
-                self.additionalClassAds.append((key, val))
-        if self.concurrency==None:
-            raise RuntimeError, "concurrency was not defined!"
-        self.concurrencyLevel = self.concurrency.split()
+            if self.concurrencyLevel is None:
+                concurrency = config.settings.get('concurrency')
+                self.concurrencyLevel = concurrency.split()
+            if self.runs is None: 
+                runs = config.settings.get('runs')
+                self.runs = int(runs)
+            if self.gfactoryAdditionalConstraint is None:
+                self.gfactoryAdditionalConstraint = config.settings.get('gfactoryAdditionalConstraint')
+            
 
-        if self.executable == None:
-            raise RuntimeError, "executable was not defined!"
+def _verify_path(key, val):
+    if val is None:
+        return None 
+    elif not os.path.exists(val):
+        raise RuntimeError, "%s '%s' is not a valid dir"%(key,val)
+    else: 
+        return val
 
 def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
 
@@ -513,13 +525,7 @@ def run(config):
     from glideinwms.lib import condorManager
     import logging
     from glideinwms.lib import logSupport
-    #TODO: Allow for log configuration.  
-    logSupport.add_processlog_handler("frontend", "/home/ilan/log",
-                                    'WARN,ERR,INFO,DEBUG', '.log.txt',
-                                    365,
-                                    0,
-                                    10
-    )
+    setup_loggers(config.cfg_paths)
     logSupport.log = logging.getLogger("frontend")
     logSupport.log.info("Logging initialized")
 

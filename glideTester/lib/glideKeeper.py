@@ -17,8 +17,8 @@ import sys,os,traceback
 sys.path.append('../bin')
 sys.path.append('/home/ilan/glideinwms')
 sys.path.insert(0, '/home/ilan/glideinwms')
-from ilanrun import ilog
-from ilanrun import dbgp
+from logHelper import ilog
+from logHelper import dbgp
 
 # these ones come from the glideinWMS package
 # they are located in the lib and frontend subdirectories
