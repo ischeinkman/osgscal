@@ -13,19 +13,11 @@ import threading
 import time, string, re
 import sys,os,traceback
 
-#TODO: Fix
-sys.path.append('../bin')
-sys.path.append('/home/ilan/glideinwms')
-sys.path.insert(0, '/home/ilan/glideinwms')
+STARTUP_DIR=sys.path[0]
+sys.path.insert(0, os.path.join(STARTUP_DIR,"../lib"))
+sys.path.insert(0, os.path.join(STARTUP_DIR,"../bin"))
 from logHelper import ilog
 from logHelper import dbgp
-
-# these ones come from the glideinWMS package
-# they are located in the lib and frontend subdirectories
-from glideinwms.frontend import glideinFrontendInterface
-from glideinwms.lib import condorMonitor
-from glideinwms.lib import condorExe
-from glideinwms.frontend.glideinFrontendPlugins import proxy_plugins, createCredentialList
 
 class GlideKeeperThread(threading.Thread):
     def __init__(self,
@@ -172,6 +164,8 @@ class GlideKeeperThread(threading.Thread):
 
     def cleanup_glideins(self):
         ilog('Thread is cleaning up glideins.')
+        from glideinwms.frontend import glideinFrontendInterface
+        from glideinwms.lib import condorMonitor, condorExe
 
         # Deadvertize my add, so the factory knows we are gone
         for factory_pool in self.factory_pools:
@@ -213,6 +207,9 @@ class GlideKeeperThread(threading.Thread):
     
     def go_request_glideins(self):
         ilog('Entered go_request_glideins.')
+        from glideinwms.frontend import glideinFrontendInterface
+        from glideinwms.lib import condorMonitor, condorExe
+        from glideinwms.frontend.glideinFrontendPlugins import proxy_plugins, createCredentialList
         # query job collector
         ilog('Checking the condor pool.')
         try:
@@ -310,7 +307,6 @@ class GlideKeeperThread(threading.Thread):
         ilog('Building advertiser.')
 
         # Note that at the moment the ID is hardcoded to '1' and the security class to '0'.
-        #TODO: Is that right? 
         proxy_plugin = proxy_plugins['ProxyFirst'] (None, [CredentialShim('1', self.proxy_fname, '0').to_credential()] )
 
         #TODO: pass the workdir
@@ -412,7 +408,7 @@ class CredentialShim:
         self.proxy_fname = proxy_fname
         self.merged_data = {}
         self.merged_data['ProxySecurityClasses'] = {proxy_fname : security_class}
-        self.merged_data['ProxyTrustDomains'] = {proxy_fname : 'Any'} #TODO: Is this right?
+        self.merged_data['ProxyTrustDomains'] = {proxy_fname : 'Any'} 
         self.merged_data['ProxyTypes'] = {proxy_fname : 'grid_proxy'} 
         self.merged_data['ProxyKeyFiles'] = {}
         self.merged_data['ProxyPilotFiles'] = {}
@@ -426,4 +422,5 @@ class CredentialShim:
         self.merged_data['ProxyProjectIds'] = {}
     
     def to_credential(self):
+        from glideinwms.frontend import glideinFrontendInterface
         return glideinFrontendInterface.Credential(self.proxy_id, self.proxy_fname, self)
