@@ -1,12 +1,13 @@
-from configutils import parse_kv_file, KeyValueConfig
-
 _default_logger_name = 'frontend'
 _default_directory = '/var/log/glidetester'
 _default_levels = 'warn,err,info,debug'
-_default_extension = '.log.txt'
+_default_extension = '_log.txt'
 _default_max_days = 10
 _default_min_days = 1
 _default_max_size = 10
+
+
+_external_logger = None
 
 """  """
 class LogConfig():
@@ -37,9 +38,11 @@ class LogConfig():
                                         max_size
         )
         logSupport.log = logging.getLogger(self.logger_name)
+        _external_logger = logging.getLogger(self.logger_name)
         logSupport.log.info("GlideTester logging initialized.")
 
     def load_config_file(self, path):
+        from configutils import parse_kv_file
         key_prefix = 'logger.'
         config = parse_kv_file(path, key_prefix=key_prefix, key_mapper= lambda k: k.lower())
         print('Got config map: %s'%str(config.settings))
@@ -80,15 +83,39 @@ def dbgp(obj, indent = 0):
         
 
 import time
-LOG_FILE = True 
-LOG_PRINT = True
+LOG_FILE = False # Wether or not we should print to a special external file 
+LOG_PRINT = True # Wether or not we should specially print to the console 
+LOG_EXTERNAL = True # Wether or not we should print to glideinwms's default logger
 
 if LOG_FILE:
-    ilanfile = open('ilan_log-%s.txt'%time.strftime('%Y-%m-%d %H:%M:%S'), 'w')
+    ilanfile = open('glidetester_ilog-%s.txt'%time.strftime('%Y-%m-%d %H:%M:%S'), 'w')
 def ilog(line):
     if LOG_PRINT:
-        print(line)
+        _ilog_console(line)
     if LOG_FILE:
-        ilanfile.write(line + "\n")
-        ilanfile.flush()
+        _ilog_file(line)
+    if LOG_EXTERNAL:
+        _ilog_external(line)
+
+def _ilog_console(line):
+    msg = line 
+    print(msg)
+def _ilog_file(line):
+    ilanfile.write(line + "\n")
+    ilanfile.flush()
+
+def _ilog_external(line):
+    try:
+        from glideinwms.lib import logSupport
+        if logSupport.log is None and _external_logger is not None:
+            _external_logger.info("ilog: %s"%str(line))
+        else:
+            logSupport.log.info("ilog: %s"%str(line))
+    except Exception, e:
+        msg = "ilog: ERROR PRINTING TO LOG: %s"%(str(e))
+        if LOG_PRINT:
+            _ilog_console(msg)
+        if LOG_FILE:
+            _ilog_file(msg)
+
 
