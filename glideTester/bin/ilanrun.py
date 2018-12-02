@@ -4,7 +4,7 @@ import sys
 cur_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(cur_path,"../lib"))
 from configutils import KeyValueConfig, parse_kv_file, parse_argv, get_config_file_list
-from logHelper import ilog
+from logHelper import ilog, setup_loggers
 import shutil
 
 def _parse_old_argv(builder, argv):
@@ -65,6 +65,7 @@ class WebStructBuilder:
 
 
         self.load_cfg()
+        self._setup_logger()
         ilog('Created Ilan WebStructBuilder: %s'%str(self))
 
         
@@ -102,15 +103,23 @@ class WebStructBuilder:
             ilog("Cleaning old webStageDir: %s"%self.webStageDir)
             shutil.rmtree(self.webStageDir)
 
+    def _setup_gwms_path(self):
+        if self.glideinWMSDir is None:
+            return
+        if not self.glideinWMSDir in sys.path:
+            sys.path.insert(0, self.glideinWMSDir)
+        glideinwms_parent = os.path.join(self.glideinWMSDir, '..')
+        if not glideinwms_parent in sys.path:
+            sys.path.insert(0,glideinwms_parent)
+
+    def _setup_logger(self):
+        self._setup_gwms_path()
+        paths = get_config_file_list(file_name = 'glideTester.cfg', arg_path=self.cfgFile)
+        setup_loggers(paths)
+
     def createStructs(self):
         ilog('Running createStructs for builder: %s'%str(self))
-        #Import the dictionary file and its dependencies
-        cur_path = os.path.dirname(os.path.abspath(__file__))
-        sys.path.append(os.path.join(cur_path,"../lib"))
-        print('Adding glideinwmsdir to path: %s'%(str(self.glideinWMSDir)))
-        glideinwms_parent = os.path.join(self.glideinWMSDir, '..')
-        print('Made parent: %s'%(str(glideinwms_parent)))
-        sys.path.append(glideinwms_parent)
+        self._setup_gwms_path()
         import cgkWDictFile
         try:
             import inspect

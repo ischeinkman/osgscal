@@ -32,9 +32,6 @@ from configutils import KeyValueConfig, parse_argv, parse_kv_file, get_config_fi
 # Configuration class
 class ArgsParser:
     def __init__(self,argv):
-        # define defaults
-        #self.config=os.path.join(STARTUP_DIR,"../etc/glideTester.cfg")
-        #self.params=os.path.join(STARTUP_DIR,"../etc/parameters.cfg")
 
         # glideTester.cfg values
         self.runId=None
@@ -83,13 +80,23 @@ class ArgsParser:
         self.verify_cfg()
 
         # set search path
-        sys.path.append(os.path.join(self.glideinWMSDir,".."))
+        if self.glideinWMSDir is not None:
+            sys.path.insert(0, self.glideinWMSDir)
+            sys.path.insert(0,os.path.join(self.glideinWMSDir,".."))
 
         self.load_config_dir()
 
         self.load_params()
+        self.setup_logger()
 
         ilog("Made glideTester: \n\n%s\n"%dbgp(self, 4))
+
+    def setup_logger(self):
+        setup_loggers(self.cfg_paths)
+        import logging
+        from glideinwms.lib import logSupport
+        logSupport.log = logging.getLogger("frontend")
+        logSupport.log.info("Logging initialized")
 
     def has_cfg(self):
         if self.glideinWMSDir is None:
@@ -523,11 +530,6 @@ def run(config):
     import glideKeeper
     from glideinwms.lib import condorMonitor
     from glideinwms.lib import condorManager
-    import logging
-    from glideinwms.lib import logSupport
-    setup_loggers(config.cfg_paths)
-    logSupport.log = logging.getLogger("frontend")
-    logSupport.log.info("Logging initialized")
 
     delegated_proxy=None
     if config.delegateProxy:
