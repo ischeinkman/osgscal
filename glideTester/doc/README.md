@@ -101,33 +101,33 @@ The priority list, from highest priority to lowest priority, is as follows:
 | Key | Description | Example | Optional? | Default Value |
 | -- | -- | -- | -- | -- |
 | `configDir` | The path to the generated frontend configuration directory, generally the same as `webstruct.workDir` | `~/workDir` | No | None |
-| `collectorNode` | | `test-001.t2.ucsd.edu:9620-9630` | | |
+| `collectorNode` | The hostname and port range of the collector node to use for collecting glideins. | `test-001.t2.ucsd.edu:9620-9630` | No | None |
 | `glideinWMSDir` | The path to the `glideinwms` library code to use. **NOTE: For development purposes only. Normal users should instead install `glideinwms` normally and rely on Python's regular library importing.** | `~/glideinwms` | Yes | None |
 
 ### Proxy Options
 
 | Key | Description | Example | Optional? | Default Value |
 | -- | -- | -- | -- | -- |
-| `proxyFile` | The path to the file containing proxy information. | `~/.globus/fe_proxy` | No | None |
-| `pilotFile` | The path to the file containing proxy pilot information. | `~/.globus/pilot_proxy` | No | None |
+| `proxyFile` | The path to the file containing proxy information. | `~/.globus/fe_proxy` | Yes | None |
+| `pilotFile` | The path to the file containing proxy pilot information. | `~/.globus/pilot_proxy` | Yes | None |
 | `delegateProxy` | Whether or not GlideTester should use a delegated proxy; can be either `True` or `False`. | `True` | Yes | `True` if either `pilotFile` or `proxyFile` are set; `False` otherwise. |
 
 ### Factory Options
 
 | Key | Description | Example | Optional? | Default Value |
 | -- | -- | -- | -- | -- |
-| `gfactoryNode` | | `glidein-1.t2.ucsd.edu` | | |
-| `gfactoryConstraint` | | `(FactoryType=?="sleeper")` | | |
-| `gfactoryClassadID` | | `t001@glidein-1.t2.ucsd.edu` | | |
+| `gfactoryNode` | The hostname of the factory to request glideins from. | `glidein-1.t2.ucsd.edu` | No | None |
+| `gfactoryConstraint` | The constraint to query possible factories against. | `(FactoryType=?="sleeper")` | No | None |
+| `gfactoryClassadID` | The ID of the factory's classad to query for. | `t001@glidein-1.t2.ucsd.edu` | No | None |
 
 ### Classad Options
 
 | Key | Description | Example | Optional? | Default Value |
 | -- | -- | -- | -- | -- |
-| `myClassadID` | | `t001@glidein-1.t2.ucsd.edu` | No | None |
-| `mySecurityName` | | `t001` | No | None |
+| `myClassadID` | The ID of the classad on the factory to authenticate with. | `t001@glidein-1.t2.ucsd.edu` | No | None |
+| `mySecurityName` | The name of the user to use when authenticating with the factory. | `t001` | No | None |
 
-### Logging Options
+### Logging Optionspassed
 
 | Key | Description | Example | Optional? | Default Value |
 | -- | -- | -- | -- | -- |
@@ -163,7 +163,7 @@ The options are:
 | `arguments` | The command-line arguments to pass ot the executable. |`--flag flagval  --cluster $(Cluster) arg2` | Yes | None |
 | `gfactoryAdditionalConstraint` | Additional constraints on the factory to add to the ClassAd. | ` FactoryName=?='TestName' ` | Yes | None |
 
-In addition, the following `condor_submit` parameters are supported and will be passed unaltered:
+In addition, the following `condor_submit` parameters are supported and will be added unaltered to generated condor jobs:
 
 * `should_transfer_files`
 * `transfer_input_files`
