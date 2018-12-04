@@ -1,7 +1,7 @@
 _default_logger_name = 'frontend'
-_default_directory = '/var/log/glidetester'
+_default_directory = '/var/log/glideTester'
 _default_levels = 'warn,err,info,debug'
-_default_extension = '_log.txt'
+_default_extension = 'log.txt'
 _default_max_days = 10
 _default_min_days = 1
 _default_max_size = 10

@@ -61,9 +61,9 @@ class ArgsParser:
         self.additionalClassAds = []
 
         # parse arguments
-        valid_keys = ['-config', '-params', '-runId']
+        valid_keys = ['-config', '-cfg', '--config', '-params', '-runId']
         arg_map = parse_argv(argv[1:], valid_kv_settings=valid_keys)
-        passed_config_path = arg_map.get('-config')
+        passed_config_path = arg_map.get('-cfg') or arg_map.get('--config') or arg_map.get('-config')
         passed_params_path = arg_map.get('-params')
         self.cfg_paths = get_config_file_list(file_name='glideTester.cfg', arg_path=passed_config_path)
         self.params_path = get_config_file_list(file_name='parameters.cfg', arg_path=passed_params_path)
@@ -430,10 +430,22 @@ def parse_result(config,workingDir,concurrencyLevel):
 
             # Parse each log file
             logFile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
-            #TODO: This is just a ductape for if the run fails. 
             if not os.path.exists(logFile):
-                tmp = open(logFile, 'w')
-                tmp.close()
+                # If the log file doesn't exist, then the run failed. 
+                # Report that in the summaries. 
+                filePath = summDir + 'con_' + concurrencyLevel[k] + '_run_' + str(l) + '.txt'
+                file=open(filePath, 'w')
+                header = "# Test Results for " + config.executable + " run at concurrency Level " + concurrencyLevel[k] + '\n\nJob\tExec\tFinish\tReturn\nNumber\tTime\tTime\tValue\n'
+                file.write(header)
+                file.write('#ERROR: Could not read log file. Did this level actually run?')
+                file.close()
+
+                filepath = summDir + 'results.txt'
+                file=open(filepath, 'a')
+                times = "Concurrency_Level = " + concurrencyLevel[k] + "\t  Execute_Time_(Ave/Min/Max) = " + 'ERROR: Failed' + '/' + 'ERROR: Failed' + '/' + 'ERROR: Failed' + "\t  Finish_Time_(Ave/Min/Max) = " + 'ERROR: Failed' + "/" + 'ERROR: Failed' + "/" + 'ERROR: Failed' + '\n'
+                file.write(times)
+                file.close()
+                continue
             lf = open(logFile, 'r')
             try:
                 lines1 = lf.readlines()
@@ -445,6 +457,8 @@ def parse_result(config,workingDir,concurrencyLevel):
                 if line[0:1] not in ('0','1','2','3','4','5','6','7','8','9','('):
                     continue # ignore unwanted text lines
                 arr1=line.split(' ',7)
+                if len(arr1) < 5:
+                    ilog('ERROR: Line too small for parsing: %s'%(str(arr1)))
                 if arr1[5] == "Bytes" or arr1[4] =="Image":
                     continue
                 if arr1[5] == "submitted":
