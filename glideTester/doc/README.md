@@ -36,7 +36,11 @@ status of the test jobs for each completed concurrency level.
 
 ## Pre-Installation
 
-Before installing GlideinWMS, the host must be able to accept incoming HTTP requests on port `80`, and must be able to redirect URL paths to a folder location writeable by the user that GlideTester will run as. In addition, the `glideinwms` library should be installed somewhere reachable via the default Python `import`.
+Before installing GlideinWMS, the host must be able to accept incoming HTTP requests on port `80`, and must be able to redirect URL paths to a folder location writeable by the user that GlideTester will run as. In addition, the `glideinwms` library should be installed somewhere reachable via the default Python `import`. For example by install the glideinwms libraries RPM
+
+```console
+yum install glideinwms-libs
+```
 
 In addition, the factory must be configured to be able to accept glidein requests from
 the frontend's name and identity. Currently, GlideTester uses a hard-coded security class of 0. For example, for a username of `t001` on a factory called `glidein-1.t2.ucsd.edu`, the config entry might be:
