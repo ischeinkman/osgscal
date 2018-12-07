@@ -65,7 +65,7 @@ webstruct.webStageDir = /etc/glidetester/webStageDir
 webstruct.webURL = http://glidetester.example.org/weburl
 ```
 
-, the following should be added to `/etc/httpd/conf` (or a `.conf` file within `/etc/httpd/conf.d`):
+Create a config file named `glidetester.conf` and place in `/etc/httpd/conf.d`:
 
 ```xml
 Alias /weburl /etc/glidetester/webStageDir
