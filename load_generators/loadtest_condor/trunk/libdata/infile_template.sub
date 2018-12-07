@@ -1,6 +1,0 @@
-executable = create_infile.sh
-arguments = $(filename) $(filesize)
-universe = local
-
-notification = Never
-
