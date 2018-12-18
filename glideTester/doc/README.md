@@ -51,7 +51,11 @@ the frontend's name and identity. Currently, GlideTester uses a hard-coded secur
 
 ## Frontend Setup
 
-Before running GlideTester the user must create both a Frontend Configuration folder and Frontend WebStruct folder, accomplished via the `createTesterWebStruct.py` file.
+Before running GlideTester the user must create both a Frontend Configuration folder and Frontend WebStruct folder. This is done by running the following command:
+
+```
+[PATH_TO_INSTALLATION]/bin/createTesterWebStruct.py
+```
 In greater detail, the webstruct creation script creates a standard Frontend `workDir` and `webStageDir` and the specified paths to be used by both the `glideinwms` library and the factory. After the `webStageDir` is created, the user must add a URL redirect so that the configured `webURL` resolves to the `webStageDir`.
 
 For example, if the glidetester host is running `httpd` with a hostname of `glidetester.example.org` the `glidetester.cfg` file contains the lines
@@ -75,6 +79,15 @@ Alias /weburl /etc/glidetester/webStageDir
 This will correctly redirect `GET` calls to the appropriate files. Note that GlideTester
 does **not** require the directory index feature of many http serves to be enabled; the
 webstruct creator automatically generates an empty `index.html` file at the root of the `webStageDir`.
+
+# Running
+To start a new run with the default configuration and executable, call the following from the terminal:
+```
+[PATH_TO_INSTALLATION]/bin/glideTester.py
+```
+
+This will start start a new test job, grabbing configuration and job execution details as described by the next section.
+
 
 # Configuration
 
