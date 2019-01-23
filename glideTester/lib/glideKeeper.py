@@ -307,7 +307,10 @@ class GlideKeeperThread(threading.Thread):
         ilog('Building advertiser.')
 
         # Note that at the moment the ID is hardcoded to '1' and the security class to '0'.
-        proxy_plugin = proxy_plugins['ProxyFirst'] (None, [CredentialShim('1', self.proxy_fname, '0').to_credential()] )
+        if self.proxy_fname is None:
+            proxy_plugin = None
+        else:
+            proxy_plugin = proxy_plugins['ProxyFirst'] (None, [CredentialShim('1', self.proxy_fname, '0').to_credential()] )
 
         #TODO: pass the workdir
         descript_obj=glideinFrontendInterface.FrontendDescript(self.client_name,
