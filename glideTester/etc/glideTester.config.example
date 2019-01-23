@@ -5,7 +5,6 @@ glideinWMSDir=/home/sfiligoi/glideinWMS
 configDir=/home/sfiligoi/web_work_dir
 proxyFile=/home/sfiligoi/.globus/fe.proxy
 pilotFile=/home/sfiligoi/.globus/pilot.proxy
-#delegateProxy=True
 collectorNode=glidein-collector.t2.ucsd.edu:5620-5689
 
 ################
