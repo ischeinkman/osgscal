@@ -329,6 +329,8 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         filecontent += ('arguments = ' + config.arguments + '\n')
     if config.x509userproxy!=None:
         filecontent += ('x509userproxy = ' + config.x509userproxy + '\n\n')
+    elif config.pilotFile!=None:
+        filecontent += ('x509userproxy = '+config.pilotFile + '\n\n')
     else:
         filecontent += ('x509userproxy = ' + config.proxyFile + '\n\n')
     #Added support for additional classAdds:
