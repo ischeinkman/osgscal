@@ -70,9 +70,12 @@ class GlideKeeperThread(threading.Thread):
         ilog('Thread session_id: %s'%session_id)
 
         self.instance_constraint='GLIDETESTER_InstanceID=?="%s"'%self.glidekeeper_id
-        self.session_constraint='GLIDETESTER_SessionID=?="%s"'%self.session_id
-
-        self.glidekeeper_constraint="(%s)&&(%s)"%(self.instance_constraint,self.session_constraint)
+        if len(self.session_id) != 0:
+            self.session_constraint='GLIDETESTER_SessionID=?="%s"'%self.session_id
+            self.glidekeeper_constraint="(%s)&&(%s)"%(self.instance_constraint,self.session_constraint)
+        else:
+            self.session_constraint = 'TRUE'
+            self.glidekeeper_constraint = self.instance_constraint
         
         ilog('Thread glidein constraints: %s'%self.glidekeeper_constraint)
         
@@ -337,8 +340,9 @@ class GlideKeeperThread(threading.Thread):
                                             glidein_el['attrs']['PubKeyID'],glidein_el['attrs']['PubKeyObj'])
             glidein_params={'GLIDEIN_Collector':self.collector_node,
                             'GLIDETESTER_InstanceID':self.glidekeeper_id,
-                            'GLIDETESTER_SessionID':self.session_id,
                             'GLIDEIN_Max_Idle':14400}
+            if self.session_id is not None and len(self.session_id) > 0:
+                            glidein_params['GLIDETESTER_SessionID']=self.session_id
             glidein_monitors={}
             advertizer.add_global(factory_pool=factory_pool_node, request_name=glidename, security_name=self.security_name, key_obj=key_obj)
             advertizer.add(factory_pool=factory_pool_node,

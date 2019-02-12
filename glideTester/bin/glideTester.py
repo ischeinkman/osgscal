@@ -59,6 +59,7 @@ class ArgsParser:
         self.runs = 1
         self.gfactoryAdditionalConstraint=None
         self.additionalClassAds = []
+        self.reuseOldGlideins = None
 
         # parse arguments
         valid_keys = ['-config', '-cfg', '--config', '-params', '-runId']
@@ -261,6 +262,17 @@ class ArgsParser:
                 self.runs = int(runs)
             if self.gfactoryAdditionalConstraint is None:
                 self.gfactoryAdditionalConstraint = config.settings.get('gfactoryAdditionalConstraint')
+            if self.reuseOldGlideins is None:
+                if not 'reuse_old_glideins' in config.settings:
+                    ilog(config.settings)
+                    continue
+                new_rog_raw = config.settings.get('reuse_old_glideins').strip().lower()
+                if len(new_rog_raw) == 0:
+                    self.reuseOldGlideins = True 
+                elif new_rog_raw[0] == 't':
+                    self.reuseOldGlideins = True 
+                else:
+                    self.reuseOldGlideins = False
             
 
 def _verify_path(key, val):
@@ -279,7 +291,7 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
 
     universe = 'vanilla'
     transfer_executable = "True"
-    when_to_transfer_output = "ON_EXIT"
+    when_to_transfer_output = "ON_EXIT_OR_EVICT"
     # disable the check for architecture, we are running a script
     # only match to our own glideins
     requirements = '(Arch =!= "fake")&&(%s)'%gktid.glidekeeper_constraint
@@ -385,11 +397,15 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
     main_log.write("%s %s\n"%(ctime(), "file submitted"))
     running = "true"
     while running != "false":
-        ilog('Running condorQ to get the running jobs.')
+        if gktid.session_id is not None and len(gktid.session_id) > 0:
+            qconstraint = '(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id)
+        else:
+            qconstraint = '(JobStatus<3)&&(GK_InstanceId=?="%s")'%(gktid.glidekeeper_id)
+        ilog('Running condorQ to get the running jobs. Constraints: %s'%(qconstraint))
         check1 = condorMonitor.CondorQ()
         try:
             # i actually want to see all jos, not only running ones
-            check1.load('(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id), [("JobStatus","s")])
+            check1.load([qconstraint, ("JobStatus","s")])
             data=check1.fetchStored()
             ilog('Success!')
         except RuntimeError,e:
@@ -561,13 +577,16 @@ def run(config):
     else:
         gfactoryConstraint="(%s)&&(%s)"%(config.gfactoryConstraint,config.gfactoryAdditionalConstraint)
     
+    session_id_param = None
+    if config.reuseOldGlideins is True:
+        session_id_param = ''
     gktid=glideKeeper.GlideKeeperThread(config.webURL,config.descriptFile,config.descriptSignature,
                                         config.groupName,config.groupDescriptFile,config.groupDescriptSignature,
                                         config.mySecurityName,config.runId,
                                         config.myClassadID,
                                         [(config.gfactoryNode,config.gfactoryClassadID)],gfactoryConstraint,
                                         config.collectorNode,
-                                        delegated_proxy)
+                                        delegated_proxy, session_id = session_id_param)
     gktid.start()
     startupDir = os.getcwd()
     workingDir=startupDir + '/run_' + startTime
