@@ -217,7 +217,7 @@ class GlideKeeperThread(threading.Thread):
         ilog('Checking the condor pool.')
         try:
           pool_status=condorMonitor.CondorStatus()
-          pool_status.load()#'(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
+          pool_status.load('(IS_MONITOR_VM=!=True)&&(%s)'%self.glidekeeper_constraint,[('State','s')])
           running_glideins=len(pool_status.fetchStored())
           del pool_status
           self.running_glideins=running_glideins
