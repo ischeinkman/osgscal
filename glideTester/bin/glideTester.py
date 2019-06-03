@@ -633,6 +633,7 @@ def run(config):
         # print out any last minute errors
         for err  in gktid.errors:
             main_log.write("%s Error: %s\n"%(ctime(err[0]),err[1]))
+            ilog("%s Error: %s\n"%(ctime(err[0]),err[1]))
         main_log.write("Terminated at: %s\n"%ctime())
     
     return
