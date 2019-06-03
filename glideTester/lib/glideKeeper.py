@@ -188,7 +188,7 @@ class GlideKeeperThread(threading.Thread):
         ilog('Getting glidein pool status data.')
         try:
           pool_status=condorMonitor.CondorStatus()
-          pool_status.load(self.glidekeeper_constraint,[('GLIDEIN_COLLECTOR_NAME','s'),('GLIDEIN_MASTER_NAME','s')])
+          pool_status.load(self.glidekeeper_constraint,[('GLIDEIN_COLLECTOR_NAME','s'),('GLIDEIN_MASTER_NAME','s'), ('MyAddress', 's')])
           pool_data=pool_status.fetchStored()
         except:
           self.errors.append((time.time(),"condor_status failed"))
@@ -197,7 +197,8 @@ class GlideKeeperThread(threading.Thread):
             el=pool_data[k]
             ilog('Now killing pool with data: (%s -> %s)'%(dbgp(k), dbgp(el)))
             try:
-                condorExe.exe_cmd("../sbin/condor_off","-master -pool %s %s"%(el['GLIDEIN_COLLECTOR_NAME'],el['GLIDEIN_MASTER_NAME']))
+                
+                condorExe.exe_cmd("../sbin/condor_off","-addr %s"%(el['MyAddress']),  env={"X509_USER_PROXY" : self.proxy_fname} )
             except RuntimeError, e:
                 self.errors.append((time.time(),"condor_off failed: %s"%e))
             except:
