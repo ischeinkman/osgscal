@@ -70,7 +70,7 @@ class WebStructBuilder:
 
         
     def _isPopulated(self):
-        return self.glideinWMSDir != None and self.gridmapFile != None and self.webURL != None and self.webStageDir != None and self.workDir != None
+        return self.gridmapFile != None and self.webURL != None and self.webStageDir != None and self.workDir != None
 
     def load_cfg(self):
         paths = get_config_file_list(file_name = 'glideTester.cfg', arg_path=self.cfgFile)

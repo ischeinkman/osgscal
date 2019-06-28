@@ -167,7 +167,8 @@ class ArgsParser:
         # make sure all the needed values have been read,
         # and assign defaults, if needed
         if self.glideinWMSDir==None:
-            raise RuntimeError, "glideinWMSDir was not defined!"
+            pass
+            #raise RuntimeError, "glideinWMSDir was not defined!"
         elif self.configDir==None:
             raise RuntimeError, "configDir was not defined!"
         elif self.proxyFile==None:
@@ -306,7 +307,6 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
     main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
 
     # now we create the directories for each job and a submit file
-    loop = 0
     dir1 = workingDir + '/concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '/'
     os.makedirs(dir1)
     logfile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
@@ -350,11 +350,9 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         name = classAdd[0]
         value = classAdd[1]
         filecontent += (name + ' = ' + value +'\n')
-    for j in range(0, int(concurrencyLevel[k]), 1):
-        filecontent += ('Initialdir = ' + dir1 + 'job' + str(loop) + '\n')
-        filecontent += ('Queue\n\n')
-        loop = loop + 1
     for i in range(0, int(concurrencyLevel[k]), 1):
+        filecontent += ('Initialdir = ' + dir1 + 'job' + str(i) + '\n')
+        filecontent += ('Queue\n\n')
         dir2 = dir1 + 'job' + str(i) + '/'
         os.makedirs(dir2)
     ilog('Creating condor file %s:\n%s'%(filename, filecontent ))
