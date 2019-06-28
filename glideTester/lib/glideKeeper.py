@@ -143,6 +143,7 @@ class GlideKeeperThread(threading.Thread):
                 self.need_cleanup = True
             else:
                 if self.need_cleanup:
+                    time.sleep(5) # We were having issues with not all stdout and stderr being transfered in time. 
                     self.cleanup_glideins()
 
     ##############
@@ -273,8 +274,8 @@ class GlideKeeperThread(threading.Thread):
                         # and add
                         glidein_dict[(factory_pool_node,glidename)]=glidein_el
                         ilog('Adding %s to glidein_dict'%glidename)
-                    except:
-                        ilog('Hit error when adding %s to glidein_dict'%glidename)
+                    except e:
+                        ilog('Hit error when adding %s to glidein_dict:\n%s'%(glidename, str(e)) )
                         continue # skip
                 else: # invalid key type, skip
                     ilog('%s has invalid PubKeyType -- skipping.'% glidename)
