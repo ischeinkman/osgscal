@@ -274,8 +274,11 @@ class GlideKeeperThread(threading.Thread):
                         # and add
                         glidein_dict[(factory_pool_node,glidename)]=glidein_el
                         ilog('Adding %s to glidein_dict'%glidename)
-                    except e:
+                    except RuntimeError, e:
                         ilog('Hit error when adding %s to glidein_dict:\n%s'%(glidename, str(e)) )
+                        continue # skip
+                    except:
+                        ilog('Hit unknown error when adding %s to glidein_dict:'%(glidename)) 
                         continue # skip
                 else: # invalid key type, skip
                     ilog('%s has invalid PubKeyType -- skipping.'% glidename)
