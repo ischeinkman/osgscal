@@ -1,13 +1,18 @@
-
+try: 
+    import typing as tp 
+except:
+    pass 
 
 class KeyValueConfig():
 
     def __init__(self, content = None):
-        self.settings = {}
-        if content != None:
+        #type: (tp.Optional[str]) -> None
+        self.settings = {} #type: tp.Dict[str, str]
+        if content is not None: 
             self.load_string(content)
     
     def load_string(self, content, key_prefix = None, key_mapper = None, value_mapper = None):
+    #type: (str, tp.Optional[str], tp.Optional[tp.Callable[ [str], str]], tp.Optional[tp.Callable[ [str], str]]) -> None
         lines = content.splitlines()
         for ln in lines:
             no_comment = ln.split('#', 1)[0].strip()
@@ -29,6 +34,7 @@ class KeyValueConfig():
             self.settings[key] = value
 
 def get_config_file_list(file_name = None, arg_path = None):
+    #type: (tp.Optional[str], tp.Optional[str]) -> tp.List[str]
     import os 
 
     retval = []
@@ -53,6 +59,7 @@ def get_config_file_list(file_name = None, arg_path = None):
 
 
 def parse_kv_file(file_name, key_prefix = None, key_mapper = None, value_mapper = None):
+    #type: (str, tp.Optional[str], tp.Optional[tp.Callable[ [str], str]], tp.Optional[tp.Callable[ [str], str]]) -> KeyValueConfig
     fl = open(file_name, 'r')
     fl_content = fl.read()
     conf = KeyValueConfig()
@@ -62,9 +69,10 @@ def parse_kv_file(file_name, key_prefix = None, key_mapper = None, value_mapper 
 
 
 def parse_argv(args, valid_flags = None, valid_kv_settings = None, key_markers = ['--', '-']):
+    #type: (str, tp.Optional[str], tp.Optional[tp.List[str]], tp.Optional[tp.List[str]]) -> tp.Dict[str, tp.Union[str, bool]]
     if args is None or len(args) <= 0:
         return {}
-    retval = {}
+    retval = {} #type: tp.Dict[str, tp.Union[str, bool]]
     idx = 0
     print('Parsing args: %s'%(str(args)))
     while idx + 1 < len(args):
