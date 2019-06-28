@@ -213,7 +213,7 @@ class GlideKeeperThread(threading.Thread):
     def go_request_glideins(self):
         ilog('Entered go_request_glideins.')
         from glideinwms.frontend import glideinFrontendInterface
-        from glideinwms.lib import condorMonitor, condorExe
+        from glideinwms.lib import condorMonitor, condorExe, pubCrypto
         from glideinwms.frontend.glideinFrontendPlugins import proxy_plugins, createCredentialList
         # query job collector
         ilog('Checking the condor pool.')
@@ -270,7 +270,7 @@ class GlideKeeperThread(threading.Thread):
                 elif glidein_el['attrs']['PubKeyType']=='RSA': # only trust RSA for now
                     try:
                         # augment
-                        glidein_el['attrs']['PubKeyObj']=glideinFrontendInterface.pubCrypto.PubRSAKey(str(re.sub(r"\\+n", r"\n", glidein_el['attrs']['PubKeyValue'])))
+                        glidein_el['attrs']['PubKeyObj']=pubCrypto.PubRSAKey(str(re.sub(r"\\+n", r"\n", glidein_el['attrs']['PubKeyValue'])))
                         # and add
                         glidein_dict[(factory_pool_node,glidename)]=glidein_el
                         ilog('Adding %s to glidein_dict'%glidename)
