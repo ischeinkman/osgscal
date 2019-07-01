@@ -403,7 +403,7 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         check1 = condorMonitor.CondorQ()
         try:
             # i actually want to see all jos, not only running ones
-            check1.load([qconstraint, ("JobStatus","s")])
+            check1.load(qconstraint, [("JobStatus","s")])
             data=check1.fetchStored()
             ilog('Success!')
         except RuntimeError,e:
