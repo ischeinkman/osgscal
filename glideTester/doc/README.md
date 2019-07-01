@@ -14,8 +14,8 @@ available.
 
 The tester daemon instead replaces the VO frontend.
 The reason for reimplementing the frontend is simple;
-the frontend provided with the glideinWMS is designed to be reactive; 
-its modus operandi is to monitor a Condor scheduler for 
+the frontend provided with the glideinWMS is designed to be reactive;
+its modus operandi is to monitor a Condor scheduler for
 waiting jobs and to request glideins if there are any.
 What we need instead is to first create the needed glidein
 pool and then submit the test jobs.
@@ -60,6 +60,7 @@ Before running GlideTester the user must create both a Frontend Configuration fo
 ```
 [PATH_TO_INSTALLATION]/bin/createTesterWebStruct.py
 ```
+
 In greater detail, the webstruct creation script creates a standard Frontend `workDir` and `webStageDir` and the specified paths to be used by both the `glideinwms` library and the factory. After the `webStageDir` is created, the user must add a URL redirect so that the configured `webURL` resolves to the `webStageDir`.
 
 For example, if the glidetester host is running `httpd` with a hostname of `glidetester.example.org` the `glidetester.cfg` file contains the lines
@@ -85,13 +86,14 @@ does **not** require the directory index feature of many http serves to be enabl
 webstruct creator automatically generates an empty `index.html` file at the root of the `webStageDir`.
 
 # Running
+
 To start a new run with the default configuration and executable, call the following from the terminal:
+
 ```
 [PATH_TO_INSTALLATION]/bin/glideTester.py
 ```
 
 This will start start a new test job, grabbing configuration and job execution details as described by the next section.
-
 
 # Configuration
 
@@ -178,7 +180,8 @@ The options are:
 | `concurrency` | A space-separated list of parallel "concurrency levels" to run the executable at, IE the number of Glideins to collect before running the executable on them. Note that glideins will be re-used between concurrency levels. |`5 10 100 1000` | No | None |
 | `runs` | The number of times to run each concurrency level. |`1` | No | None |
 | `arguments` | The command-line arguments to pass ot the executable. |`--flag flagval  --cluster $(Cluster) arg2` | Yes | None |
-| `gfactoryAdditionalConstraint` | Additional constraints on the factory to add to the ClassAd. | ` FactoryName=?='TestName' ` | Yes | None |
+| `gfactoryAdditionalConstraint` | Additional constraints on the factory to add to the ClassAd. | `FactoryName=?='TestName'` | Yes | None |
+| `initialDirFormat` | The GlideTester Format String (see below) specifying where each job's `InitialDir` will be set to; this directory will include the job's standard out, error, and all other output files. | `{wd}/concurrency_{c}{'_run_' + str(r) if r != '0' else ''}/job{'%03d'%(int(j))}` | Yes | `{wd}/concurrency_{c}_run_{r}/job{j}`
 
 In addition, the following `condor_submit` parameters are supported and will be added unaltered to generated condor jobs:
 
@@ -188,3 +191,24 @@ In addition, the following `condor_submit` parameters are supported and will be 
 * `environment`
 * `getenv`
 * `x509userproxy`
+
+## GlideTester Format String
+
+Some options, such as `initialDirFormat` in the `parameters.cfg` file, accept a GlideTester Format String.
+These format strings are composed of a combination of raw test and valid Python expressions placed
+within brackets (`{}`). These expressions are evaluated via `eval`, converted to a string using `str()`, and then
+subsituted back into the original string. Different variables can be passed to the `eval` calls depending
+on the exact option being used; however, all variables passed in to the format will be of type `str`.
+
+The variables for each GlideTester Format String are as follows:
+
+### `inidialDirFormat`
+
+| Name | Description | Example |
+| -- | -- | -- |
+| `c` | The concurrency level that the job is a part of. | `100` |
+| `j` | The index of this job within the current concurrency level. Can range from `0` to `int(c) - 1`, inclusive. | `84` |
+| `r` | The current repetition number for this concurrency level. Can range from `0` to the value passed to `runs` in `parameters.cfg` - 1, inclusive. | `0` |
+| `sd` | The path to the directory that GlideTester was called from. | `/home/testuser/` |
+| `ts` | The date and time that this GlideTester command was started, in format `%Y%m%d_%H%M%S` | `20190701_153029` |
+| `wd` | The "working directory" of the current GlideTester execution, where all of the GlideTester logs and extra metadata get written to. Currently this should always be equal to `{sd}/run_{ts}`. | `/home/testuser/run_20190701_153029` |
