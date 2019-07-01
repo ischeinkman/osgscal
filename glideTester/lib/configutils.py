@@ -95,3 +95,36 @@ def parse_argv(args, valid_flags = None, valid_kv_settings = None, key_markers =
 def _starts_with_any(item, prefix_list):
     prefix_checker = lambda prefix: item.startswith(prefix)
     return any(map(prefix_checker, prefix_list))
+
+
+#Matches all non-bracket strings between brackets.
+#Building the regex: 
+# '[^}]' matches a single character not equal to '}', returning the boolean True on match. 
+# '[^}]*' matches multiple characters not equal to '}', returning the boolean True on match. 
+# '([^}]*)' matches multiple characters not equal to '}', returning the matching characters.
+# '{([^}]*)}' matches multiple characters between '{' and '}' not themselves equal to '}', returning the matching characters.
+import re 
+exp_matcher = re.compile('{([^}]*)}') 
+
+# Takes a GlideTester format string and the local variable map and builds the runtime value of the string. 
+def construct_from_format(format_str, var_map):
+    #type: (str, tp.Dict[str, tp.Any]) -> str 
+    exp_list = exp_matcher.findall(format_str) #type: tp.List[str]
+    exp_runner = lambda exp: str(eval(exp, None, var_map)) #type: tp.Callable[[str], str]
+    repl_list = []
+    err_list = {}
+    for exp in exp_list: 
+        try:
+            repl_list.append(exp_runner(exp))
+        except Exception as e: 
+            err_list[exp] = e
+    out_format, exp_count = exp_matcher.subn('%s', format_str.replace('%', '%%'))
+    if len(err_list) > 0:
+        msg = '['
+        for exp in err_list:
+            err = err_list[exp]
+            msg += "'{}' : '{}',".format(exp, err)
+        msg += ']'
+        raise ValueError(msg)    
+    assert len(repl_list) == exp_count
+    return out_format%tuple(repl_list)

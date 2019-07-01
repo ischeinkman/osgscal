@@ -19,7 +19,8 @@ import copy
 import re
 from time import strftime,sleep,ctime
 
-startTime=strftime("%Y%m%d_%H%M%S")
+startTimeFormat = "%Y%m%d_%H%M%S"
+startTime=strftime(startTimeFormat)
 
 STARTUP_DIR=sys.path[0]
 sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
@@ -27,7 +28,7 @@ sys.path.append(os.path.join(STARTUP_DIR,"../lib"))
 from logHelper import ilog
 from logHelper import dbgp
 from logHelper import setup_loggers
-from configutils import KeyValueConfig, parse_argv, parse_kv_file, get_config_file_list
+from configutils import KeyValueConfig, parse_argv, parse_kv_file, get_config_file_list, construct_from_format
 ############################
 # Configuration class
 class ArgsParser:
@@ -60,6 +61,7 @@ class ArgsParser:
         self.gfactoryAdditionalConstraint=None
         self.additionalClassAds = []
         self.reuseOldGlideins = None
+        self.jobOutFormat=None
 
         # parse arguments
         valid_keys = ['-config', '-cfg', '--config', '-params', '-runId']
@@ -274,7 +276,24 @@ class ArgsParser:
                     self.reuseOldGlideins = True 
                 else:
                     self.reuseOldGlideins = False
+            if self.jobOutFormat is None:
+                self.jobOutFormat = config.settings.get('initialDirFormat')
+                if self.jobOutFormat is not None: 
+                    self.verify_job_out_format()
             
+    def verify_job_out_format(self):
+        if self.jobOutFormat is None: 
+            self.jobOutFormat = '{wd}/concurrency_{c}_run_{r}/job{j}'
+        example_params = {
+            'sd' : '~/',
+            'ts' : '20190628_170503',
+            'wd' : '~/run_20190628_170503',
+            'c' : '100',
+            'r' : '2',
+            'j' : '47', 
+        }
+        construct_from_format(self.jobOutFormat, example_params)
+
 
 def _verify_path(key, val):
     if val is None:
@@ -284,12 +303,7 @@ def _verify_path(key, val):
     else: 
         return val
 
-def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
-
-    ilog('Processing concurrency level %s => %s run number %s.\n\tgktid: %s\n\tworkingDir: %s\n\t log: %s'%(str(k), str(concurrencyLevel[k]), str(l), str(gktid), str(workingDir), str(main_log)))
-    from glideinwms.lib import condorMonitor
-    from glideinwms.lib import condorManager
-
+def make_submit_file_content(config,gktid,main_log,workingDir,concurrency, run):
     universe = 'vanilla'
     transfer_executable = "True"
     when_to_transfer_output = "ON_EXIT_OR_EVICT"
@@ -299,23 +313,10 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
     owner = 'Undefined'
     notification = 'Never'
 
-    # request the glideins
-    # we want 10% more glideins than the concurrency level
-    requestedGlideins = int(concurrencyLevel[k])
-    totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
-    gktid.request_glideins(totalGlideins)
-    main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
-
-    # now we create the directories for each job and a submit file
-    dir1 = workingDir + '/concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '/'
-    os.makedirs(dir1)
-    logfile = workingDir + '/con_' + concurrencyLevel[k] + '_run_' + str(l) + '.log'
-    outputfile = 'concurrency_' + concurrencyLevel[k] + '.out'
-    errorfile = 'concurrency_' + concurrencyLevel[k] + '.err'
-    filename =  workingDir + "/" + config.executable.replace('/', '__') + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(l) + '_submit.condor'
-    filecontent = ''
-    condorSubmitFile=open(filename, "w")
-    filecontent += ('universe = ' + universe + '\n' +
+    logfile = workingDir + '/con_' + concurrency + '_run_' + str(run) + '.log'
+    outputfile = 'concurrency_' + concurrency + '.out'
+    errorfile = 'concurrency_' + concurrency + '.err'
+    filecontent = ('universe = ' + universe + '\n' +
                            'executable = ' + config.executable + '\n' +
                            'transfer_executable = ' + transfer_executable + '\n' +
                            'when_to_transfer_output = ' + when_to_transfer_output + '\n' +
@@ -350,11 +351,41 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         name = classAdd[0]
         value = classAdd[1]
         filecontent += (name + ' = ' + value +'\n')
-    for i in range(0, int(concurrencyLevel[k]), 1):
-        filecontent += ('Initialdir = ' + dir1 + 'job' + str(i) + '\n')
+    # Now we create the directories for each job and a submit file
+    config.verify_job_out_format()
+    ilog('Using job output format: %s'%(config.jobOutFormat))
+    for i in range(0, int(concurrency), 1):
+        args = {
+            'j' : str(i),
+            'c' : str(concurrency), 
+            'wd' : str(workingDir),
+            'r' : str(run),
+            'sd' : STARTUP_DIR, 
+            'ts' : startTime,
+        }
+        jobdir = construct_from_format(config.jobOutFormat, args)
+        filecontent += ('Initialdir = ' +jobdir+ '\n')
         filecontent += ('Queue\n\n')
-        dir2 = dir1 + 'job' + str(i) + '/'
-        os.makedirs(dir2)
+        os.makedirs(jobdir+'/')
+    return filecontent
+
+def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,run,k):
+
+    ilog('Processing concurrency level %s => %s run number %s.\n\tgktid: %s\n\tworkingDir: %s\n\t log: %s'%(str(k), str(concurrencyLevel[k]), str(run), str(gktid), str(workingDir), str(main_log)))
+    from glideinwms.lib import condorMonitor
+    from glideinwms.lib import condorManager
+
+    # request the glideins
+    # we want 10% more glideins than the concurrency level
+    requestedGlideins = int(concurrencyLevel[k])
+    totalGlideins = int(requestedGlideins + .1 * requestedGlideins)
+    gktid.request_glideins(totalGlideins)
+    main_log.write("%s %i Glideins requested\n"%(ctime(),totalGlideins))
+
+    # now we create the directories for each job and a submit file
+    filename =  workingDir + "/" + config.executable.replace('/', '__') + '_concurrency_' + concurrencyLevel[k] + '_run_' + str(run ) + '_submit.condor'
+    filecontent = make_submit_file_content(config, gktid, main_log, workingDir, concurrencyLevel[k], run)
+    condorSubmitFile=open(filename, "w")
     ilog('Creating condor file %s:\n%s'%(filename, filecontent ))
     condorSubmitFile.write(filecontent)
     condorSubmitFile.close()
@@ -362,8 +393,8 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
     # Need to figure out when we have all the glideins
     # Ask the glidekeeper object
     ilog('Now waiting until the thread retrieves enough glideins.')
-    finished = "false"
-    while finished != "true":
+    numberGlideins = 0
+    while numberGlideins < requestedGlideins:
         errors=[]
         while 1:
             # since gktid runs in a different thread, pop is the only atomic operation I have
@@ -386,15 +417,13 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
         main_log.write("%s %s %s %s %s\n"%(ctime(), 'we have', numberGlideins, 'glideins, need', requestedGlideins))
         main_log.flush()
         sleep(5)
-        if numberGlideins >= requestedGlideins:
-            finished = "true"
 
     # Now we begin submission and monitoring
     ilog('Got the glideins. Now submitting %s.'%filename)
     submission = condorManager.condorSubmitOne(filename)
     main_log.write("%s %s\n"%(ctime(), "file submitted"))
-    running = "true"
-    while running != "false":
+    runningGlideins = numberGlideins
+    while runningGlideins > 0:
         if gktid.session_id is not None and len(gktid.session_id) > 0:
             qconstraint = '(JobStatus<3)&&(GK_InstanceId=?="%s")&&(GK_SessionId=?="%s")'%(gktid.glidekeeper_id,gktid.session_id)
         else:
@@ -418,12 +447,13 @@ def process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k):
             main_log.flush()
             sleep(2)
             continue # retry the while loop
+        runningGlideins = len(data)
         ilog('Found %s jobs running.'%len(data.keys()))
-        main_log.write("%s %s %s\n"%(ctime(), len(data.keys()), 'jobs running'))
+        main_log.write("%s %s %s\n"%(ctime(), runningGlideins, 'jobs running'))
         main_log.flush()
-        if len(data.keys()) == 0:
-            running = "false"
+        if runningGlideins == 0:
             main_log.write("%s %s\n"%(ctime(), "no more running jobs"))
+            break
         else:
             sleep(10)
 
