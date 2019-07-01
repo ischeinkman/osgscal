@@ -360,7 +360,7 @@ def make_submit_file_content(config,gktid,main_log,workingDir,concurrency, run):
             'c' : str(concurrency), 
             'wd' : str(workingDir),
             'r' : str(run),
-            'sd' : STARTUP_DIR, 
+            'sd' : os.getcwd(), 
             'ts' : startTime,
         }
         jobdir = construct_from_format(config.jobOutFormat, args)
