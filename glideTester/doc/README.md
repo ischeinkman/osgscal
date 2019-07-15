@@ -182,6 +182,8 @@ The options are:
 | `arguments` | The command-line arguments to pass ot the executable. |`--flag flagval  --cluster $(Cluster) arg2` | Yes | None |
 | `gfactoryAdditionalConstraint` | Additional constraints on the factory to add to the ClassAd. | `FactoryName=?='TestName'` | Yes | None |
 | `initialDirFormat` | The GlideTester Format String (see below) specifying where each job's `InitialDir` will be set to; this directory will include the job's standard out, error, and all other output files. | `{wd}/concurrency_{c}{'_run_' + str(r) if r != '0' else ''}/job{'%03d'%(int(j))}` | Yes | `{wd}/concurrency_{c}_run_{r}/job{j}`
+| `prescript` | The GlideTester Format String specifying a script to call before any other GlideTester action, including attempting to build concurrency. | `echo "NOW RUNNING AT {ts}` | Yes | None |
+| `postscript` | The GlideTester Format String specifying a script to call after all other activities have ran, including post-final-run Glidin shutoff. Note that this script will *not* be called if GlideTester was interupted, only if it terminated normally. | `echo "NOW FINISHED AT {ts}` | Yes | None |
 
 In addition, the following `condor_submit` parameters are supported and will be added unaltered to generated condor jobs:
 
@@ -212,3 +214,21 @@ The variables for each GlideTester Format String are as follows:
 | `sd` | The path to the directory that GlideTester was called from. | `/home/testuser/` |
 | `ts` | The date and time that this GlideTester command was started, in format `%Y%m%d_%H%M%S` | `20190701_153029` |
 | `wd` | The "working directory" of the current GlideTester execution, where all of the GlideTester logs and extra metadata get written to. Currently this should always be equal to `{sd}/run_{ts}`. | `/home/testuser/run_20190701_153029` |
+
+### `prescript`
+
+| Name | Description | Example |
+| -- | -- | -- |
+| `sd` | The path to the directory that GlideTester was called from. | `/home/testuser/` |
+| `ts` | The date and time that this GlideTester command was started, in format `%Y%m%d_%H%M%S` | `20190701_153029` |
+| `wd` | The "working directory" of the current GlideTester execution, where all of the GlideTester logs and extra metadata get written to. Currently this should always be equal to `{sd}/run_{ts}`. | `/home/testuser/run_20190701_153029` |
+| `cmd` | The full `sys.argv` list used to invoke GlideTester, separated with spaces. | `glideTester.py -params parameters.cfg -config myconf.cfg` |
+
+### `postscript`
+
+| Name | Description | Example |
+| -- | -- | -- |
+| `sd` | The path to the directory that GlideTester was called from. | `/home/testuser/` |
+| `ts` | The date and time that this GlideTester command was started, in format `%Y%m%d_%H%M%S` | `20190701_153029` |
+| `wd` | The "working directory" of the current GlideTester execution, where all of the GlideTester logs and extra metadata get written to. Currently this should always be equal to `{sd}/run_{ts}`. | `/home/testuser/run_20190701_153029` |
+| `cmd` | The full `sys.argv` list used to invoke GlideTester, separated with spaces. | `glideTester.py -params parameters.cfg -config myconf.cfg` |

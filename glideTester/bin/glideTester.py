@@ -62,6 +62,8 @@ class ArgsParser:
         self.additionalClassAds = []
         self.reuseOldGlideins = None
         self.jobOutFormat=None
+        self.prescript = None 
+        self.postscript = None 
 
         # parse arguments
         valid_keys = ['-config', '-cfg', '--config', '-params', '-runId']
@@ -280,7 +282,12 @@ class ArgsParser:
                 self.jobOutFormat = config.settings.get('initialDirFormat')
                 if self.jobOutFormat is not None: 
                     self.verify_job_out_format()
-            
+            if self.prescript is None: 
+                self.prescript = config.settings.get('prescript')
+            if self.postscript is None: 
+                self.postscript = config.settings.get('postscript')
+            self.verify_prepostscript()
+    
     def verify_job_out_format(self):
         if self.jobOutFormat is None: 
             self.jobOutFormat = '{wd}/concurrency_{c}_run_{r}/job{j}'
@@ -293,6 +300,19 @@ class ArgsParser:
             'j' : '47', 
         }
         construct_from_format(self.jobOutFormat, example_params)
+
+    def verify_prepostscript(self):
+        example_params = {
+            'sd' : '~/',
+            'ts' : '20190628_170503',
+            'wd' : '~/run_20190628_170503',
+            'cmd' : ' '.join(sys.argv)
+        }
+        if self.prescript is not None: 
+            construct_from_format(self.prescript, example_params)
+        if self.postscript is not None: 
+            construct_from_format(self.postscript, example_params)
+
 
 
 def _verify_path(key, val):
@@ -636,6 +656,20 @@ def run(config):
         concurrencyLevel=config.concurrencyLevel
 
         try:
+            prescript_args = {
+                'wd' : str(workingDir),
+                'sd' : os.getcwd(), 
+                'ts' : startTime,
+                'cmd' : ' '.join(sys.argv)
+            }
+            if config.prescript is not None: 
+                prescript = construct_from_format(config.prescript, prescript_args)
+                ilog('Running prescript: %s'%(prescript))
+                err_code = os.system(prescript)
+                if err_code is not 0:
+                    msg = 'Bad error code: '+str(err_code)
+                    raise RuntimeError(msg)
+
             # Create a testing loop for each run
             for l in range(0, config.runs, 1):
                 main_log.write("Iteration %i\n"%l)
@@ -644,6 +678,19 @@ def run(config):
                 for k in range(0, len(concurrencyLevel), 1):
                     main_log.write("Concurrency %i\n"%int(concurrencyLevel[k]))
                     process_concurrency(config,gktid,main_log,workingDir,concurrencyLevel,l,k)
+            postscript_args = {
+                'wd' : str(workingDir),
+                'sd' : os.getcwd(), 
+                'ts' : startTime,
+                'cmd' : ' '.join(sys.argv)
+            }
+            if config.postscript is not None: 
+                postscript = construct_from_format(config.postscript, postscript_args)
+                ilog('Running postscript: %s'%(postscript))
+                err_code = os.system(postscript)
+                if err_code is not 0:
+                    msg = 'Bad error code: '+str(err_code)
+                    raise RuntimeError(msg)
             main_log.write("%s %s\n"%(ctime(), "Done"))
         except:
             tb = traceback.format_exception(sys.exc_info()[0],sys.exc_info()[1],
