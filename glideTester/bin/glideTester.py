@@ -57,7 +57,7 @@ class ArgsParser:
         self.arguments = None
         self.x509userproxy = None
         self.concurrencyLevel = None
-        self.runs = 1
+        self.runs = None
         self.gfactoryAdditionalConstraint=None
         self.additionalClassAds = []
         self.reuseOldGlideins = None
@@ -264,7 +264,8 @@ class ArgsParser:
                 self.concurrencyLevel = concurrency.split()
             if self.runs is None: 
                 runs = config.settings.get('runs')
-                self.runs = int(runs)
+                if runs is not None:
+                    self.runs = int(runs)
             if self.gfactoryAdditionalConstraint is None:
                 self.gfactoryAdditionalConstraint = config.settings.get('gfactoryAdditionalConstraint')
             if self.reuseOldGlideins is None:
@@ -287,7 +288,8 @@ class ArgsParser:
             if self.postscript is None: 
                 self.postscript = config.settings.get('postscript')
             self.verify_prepostscript()
-    
+        if self.runs is None or type(self.runs) != int: 
+            self.runs = 1 
     def verify_job_out_format(self):
         if self.jobOutFormat is None: 
             self.jobOutFormat = '{wd}/concurrency_{c}_run_{r}/job{j}'
